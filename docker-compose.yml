@@ -9,19 +9,21 @@ services:
     ports:
       - "6060:6060"
     environment:
-      - SYNCTOHDD_CONFIG=/app/config.yaml
+      - SYNCTOHDD_CONFIG=/app/data/config.yaml
       - PYTHONUNBUFFERED=1
     volumes:
-      # Persistent configuration & history database
-      - ./config.yaml:/app/config.yaml
-      - ./data:/app/data
+      # Persistent app data (stores config.yaml and synctohdd.db)
+      - /DATA/AppData/synctohdd:/app/data
 
-      # Host filesystem mounts (Adjust these host paths to match your Ubuntu / CasaOS paths)
-      # Source data directory (read-only recommended for safety)
-      - /sg2b:/sg2b:ro
+      # Storage & Disks on Ubuntu / CasaOS:
+      # Mounting /media and /mnt gives the container instant access to all external USB drives
+      # (e.g. /media/devmon/LX2T or any plugged in storage drive)
+      - /media:/media:rw
+      - /mnt:/mnt:rw
 
-      # Destination External USB3 HDD (mounted on Ubuntu / CasaOS at /media/devmon/LX2T)
-      - /media/devmon/LX2T:/media/devmon/LX2T:rw
+      # If your server source files are in a custom directory (e.g. /sg2b),
+      # ensure the folder exists on your server, then uncomment or add it:
+      # - /sg2b:/sg2b:ro
 
 x-casaos:
   architectures:
@@ -55,5 +57,5 @@ x-casaos:
   tips:
     before_install:
       en_US: |
-        1. Make sure your USB3 external HDD is connected and mounted in Ubuntu / CasaOS (e.g. /media/devmon/LX2T).
-        2. Verify that the volume paths under 'volumes' in the compose configuration match your source directory and external drive mount path.
+        1. All external USB drives under /media (e.g. /media/devmon/LX2T) are automatically accessible.
+        2. If your source data is in /sg2b, ensure that folder exists on your Ubuntu server before adding it under volumes.

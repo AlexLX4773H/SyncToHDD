@@ -48,23 +48,52 @@ class AppConfig(BaseModel):
 
 def get_config_path(override_path: Optional[str] = None) -> Path:
     if override_path:
-        return Path(override_path).resolve()
+        p = Path(override_path).resolve()
+        if p.is_dir():
+            return (p / "config.yaml").resolve()
+        return p
+
     env_path = os.getenv(CONFIG_FILE_ENV)
     if env_path:
-        return Path(env_path).resolve()
+        p = Path(env_path).resolve()
+        if p.is_dir():
+            return (p / "config.yaml").resolve()
+        return p
+
+    data_config = Path("data/config.yaml")
+    if data_config.is_file():
+        return data_config.resolve()
+    elif data_config.is_dir():
+        return (data_config / "config.yaml").resolve()
+
     return DEFAULT_CONFIG_PATH.resolve()
 
 def load_config(config_path: Optional[str] = None) -> AppConfig:
     """Load configuration from YAML file or return defaults."""
     target_path = get_config_path(config_path)
-    if not target_path.exists():
-        example_path = target_path.with_name("config.yaml.example")
-        if example_path.exists():
-            with open(example_path, "r", encoding="utf-8") as f:
+    if not target_path.is_file():
+        source_template = None
+        for candidate in [
+            Path("config.yaml"),
+            Path("config.yaml.example"),
+            target_path.with_name("config.yaml.example"),
+            Path("/app/config.yaml.example"),
+            Path("/app/config.yaml"),
+        ]:
+            if candidate.exists() and candidate.is_file() and candidate.resolve() != target_path.resolve():
+                source_template = candidate
+                break
+
+        if source_template:
+            with open(source_template, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f) or {}
                 cfg = AppConfig(**data)
                 for pair in cfg.sync_pairs:
                     pair.ensure_id()
+                try:
+                    save_config(cfg, str(target_path))
+                except Exception:
+                    pass
                 return cfg
         return AppConfig()
 
@@ -79,6 +108,8 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
 def save_config(config: AppConfig, config_path: Optional[str] = None) -> None:
     """Persist current configuration to YAML file."""
     target_path = get_config_path(config_path)
+    if target_path.is_dir():
+        target_path = target_path / "config.yaml"
     target_path.parent.mkdir(parents=True, exist_ok=True)
     dict_data = config.model_dump()
     with open(target_path, "w", encoding="utf-8") as f:
