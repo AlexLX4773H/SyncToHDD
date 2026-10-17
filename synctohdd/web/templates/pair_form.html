@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_new %}Add Sync Pair{% else %}Edit {{ pair.name }}{% endif %}{% endblock %}
+{% block header_title %}{% if is_new %}Add New Sync Pair{% else %}Edit Sync Pair{% endif %}{% endblock %}
+
+{% block header_actions %}
+  <a href="/pairs" class="btn btn-secondary">Cancel</a>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+  <form action="/pairs/save" method="POST">
+    <input type="hidden" name="id" value="{{ pair.id if pair else '' }}">
+
+    <div class="form-group">
+      <label class="form-label" for="input-name">Pair Name *</label>
+      <input type="text" id="input-name" name="name" class="form-input" placeholder="e.g. Manga CBZ Backup" value="{{ pair.name if pair else '' }}" required>
+      <div class="form-help">Descriptive label shown in dashboard and notifications.</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="input-source">Source Directory *</label>
+      <input type="text" id="input-source" name="source" class="form-input" placeholder="e.g. /sg2b/Share2sgb/Manga/Manga_CBZ_1 or D:\Manga" value="{{ pair.source if pair else '' }}" required>
+      <div class="form-help">Directory where files are read from. In Docker, ensure this path is mounted.</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="input-destination">Destination Directory *</label>
+      <input type="text" id="input-destination" name="destination" class="form-input" placeholder="e.g. /media/devmon/LX2T/BackupServer or E:\Backup" value="{{ pair.destination if pair else '' }}" required>
+      <div class="form-help">Target directory on your external USB3 HDD or storage drive.</div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      <div class="form-group">
+        <label class="form-label" for="select-mode">Sync Mode</label>
+        <select id="select-mode" name="mode" class="form-select">
+          <option value="mirror" {% if not pair or pair.mode == 'mirror' %}selected{% endif %}>Mirror (Delete files at destination if removed from source)</option>
+          <option value="additive" {% if pair and pair.mode == 'additive' %}selected{% endif %}>Additive (Never delete files from destination)</option>
+        </select>
+        <div class="form-help">Choose whether to preserve or remove deleted files on HDD.</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="input-bw">Bandwidth Limit (Optional)</label>
+        <input type="text" id="input-bw" name="bandwidth_limit" class="form-input" placeholder="e.g. 50M or 500K" value="{{ pair.bandwidth_limit if pair and pair.bandwidth_limit else '' }}">
+        <div class="form-help">Rate limit transfer speed (useful to prevent saturating disk I/O). Leave blank for uncapped.</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="textarea-exclude">Exclusion Patterns (One per line)</label>
+      <textarea id="textarea-exclude" name="exclude_text" class="form-textarea" placeholder="*.tmp&#10;.thumbs/&#10;.DS_Store&#10;Thumbs.db">{{ pair.exclude | join('\n') if pair and pair.exclude else '' }}</textarea>
+      <div class="form-help">Glob patterns to ignore. Folders should end with a trailing slash, e.g. <code>node_modules/</code>.</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-check">
+        <input type="checkbox" name="checksum" value="true" {% if pair and pair.checksum %}checked{% endif %}>
+        <span style="font-weight: 500; color: #fff;">Enable SHA-256 Checksum Comparison</span>
+      </label>
+      <div class="form-help" style="margin-left: 28px;">
+        Default uses file modification time and size. Enable checksum for 100% bitwise verification (slower for huge libraries).
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; border-top: 1px solid var(--border-subtle); padding-top: 20px;">
+      <a href="/pairs" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary" id="btn-save-pair">
+        {% if is_new %}Create Sync Pair{% else %}Save Changes{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

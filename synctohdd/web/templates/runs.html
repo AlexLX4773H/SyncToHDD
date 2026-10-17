@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Run History{% endblock %}
+{% block header_title %}Sync Run History{% endblock %}
+
+{% block header_actions %}
+  <span style="font-size: 0.9rem; color: var(--text-secondary);">Total Runs: <strong>{{ total }}</strong></span>
+{% endblock %}
+
+{% block content %}
+<!-- Filters Bar -->
+<div class="card" style="margin-bottom: 24px; padding: 16px 24px;">
+  <form method="GET" action="/runs" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <label class="form-label" style="margin-bottom: 0;">Pair:</label>
+      <select name="pair" class="form-select" style="width: 220px;" onchange="this.form.submit()">
+        <option value="">All Sync Pairs</option>
+        {% for p in pairs %}
+        <option value="{{ p.id }}" {% if selected_pair == p.id %}selected{% endif %}>{{ p.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <label class="form-label" style="margin-bottom: 0;">Status:</label>
+      <select name="status" class="form-select" style="width: 160px;" onchange="this.form.submit()">
+        <option value="">All Statuses</option>
+        <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>Completed</option>
+        <option value="failed" {% if selected_status == 'failed' %}selected{% endif %}>Failed</option>
+        <option value="cancelled" {% if selected_status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+        <option value="running" {% if selected_status == 'running' %}selected{% endif %}>Running</option>
+      </select>
+    </div>
+
+    {% if selected_pair or selected_status %}
+    <a href="/runs" class="btn btn-secondary btn-sm">Clear Filters</a>
+    {% endif %}
+  </form>
+</div>
+
+<!-- Runs Table -->
+<div class="card">
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Sync Pair</th>
+          <th>Started</th>
+          <th>Duration</th>
+          <th>Changes (+ / ~ / -)</th>
+          <th>Data Transferred</th>
+          <th>Mode</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if runs %}
+          {% for run in runs %}
+          <tr>
+            <td>
+              <span class="badge badge-{{ run.status }}">{{ run.status }}</span>
+            </td>
+            <td>
+              <strong style="color: #fff; font-size: 0.92rem;">{{ run.sync_pair_name }}</strong>
+            </td>
+            <td style="color: var(--text-secondary); font-size: 0.85rem;">
+              {{ run.started_at.strftime('%Y-%m-%d %H:%M:%S') if run.started_at else '-' }}
+            </td>
+            <td style="color: var(--text-secondary); font-size: 0.85rem;">
+              {{ run.started_at | format_duration(run.finished_at) }}
+            </td>
+            <td>
+              <span style="color: #10b981; font-weight: 600;">+{{ run.files_added }}</span>
+              <span style="color: #f59e0b; margin: 0 4px; font-weight: 600;">~{{ run.files_modified }}</span>
+              <span style="color: #ef4444; font-weight: 600;">-{{ run.files_deleted }}</span>
+            </td>
+            <td style="font-family: var(--font-mono); font-size: 0.85rem;">
+              {{ run.bytes_transferred | format_bytes }}
+            </td>
+            <td>
+              {% if run.dry_run %}
+                <span class="badge badge-mode">Dry Run</span>
+              {% else %}
+                <span style="color: var(--text-muted); font-size: 0.8rem;">Live</span>
+              {% endif %}
+            </td>
+            <td style="text-align: right; white-space: nowrap;">
+              <a href="/runs/{{ run.run_id }}" class="btn btn-secondary btn-sm">Inspect</a>
+              <button class="btn btn-danger btn-sm" onclick="deleteRun('{{ run.run_id }}')" title="Delete Run Record">&times;</button>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
+              No sync runs match the selected criteria.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if total_pages > 1 %}
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+    <div style="color: var(--text-muted); font-size: 0.85rem;">
+      Page {{ page }} of {{ total_pages }} ({{ total }} total runs)
+    </div>
+    <div style="display: flex; gap: 8px;">
+      {% if page > 1 %}
+      <a href="/runs?page={{ page - 1 }}&pair={{ selected_pair }}&status={{ selected_status }}" class="btn btn-secondary btn-sm">&larr; Previous</a>
+      {% endif %}
+      {% if page < total_pages %}
+      <a href="/runs?page={{ page + 1 }}&pair={{ selected_pair }}&status={{ selected_status }}" class="btn btn-secondary btn-sm">Next &rarr;</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

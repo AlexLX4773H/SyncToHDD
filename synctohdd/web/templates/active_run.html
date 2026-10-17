@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Active Sync{% endblock %}
+{% block header_title %}Active Sync Monitor{% endblock %}
+
+{% block header_actions %}
+  <button class="btn btn-danger" id="btn-cancel-sync" onclick="cancelActiveSync()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="15" y1="9" x2="9" y2="15"/>
+      <line x1="9" y1="9" x2="15" y2="15"/>
+    </svg>
+    Cancel Sync
+  </button>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="margin-bottom: 24px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <div>
+      <span class="badge badge-{{ sync_status.latest_event.status if sync_status.latest_event else 'completed' }}" id="active-run-status-badge">
+        {{ sync_status.latest_event.status if sync_status.latest_event else ('syncing' if sync_status.is_running else 'idle') }}
+      </span>
+      <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-top: 6px;" id="active-run-title">
+        {{ sync_status.active_pair_name if sync_status.active_pair_name else 'No Sync Currently Running' }}
+      </h2>
+    </div>
+    <div style="text-align: right;">
+      <span style="font-size: 1.8rem; font-weight: 700; color: var(--accent-primary);" id="active-progress-percent">
+        {{ sync_status.latest_event.percent if sync_status.latest_event else 0.0 }}%
+      </span>
+      <div style="font-size: 0.8rem; color: var(--text-muted);">Engine: {{ sync_status.backend }}</div>
+    </div>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="progress-container">
+    <div class="progress-bar" id="active-progress-bar" style="width: {{ sync_status.latest_event.percent if sync_status.latest_event else 0 }}%;"></div>
+  </div>
+
+  <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 20px;">
+    <strong>Current item:</strong>
+    <span id="live-current-file" style="font-family: var(--font-mono); color: #cbd5e1;">
+      {{ sync_status.latest_event.current_file if sync_status.latest_event and sync_status.latest_event.current_file else 'Waiting for activity...' }}
+    </span>
+  </div>
+
+  <!-- Live Counter Grid -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px;">
+    <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-md); padding: 12px 16px;">
+      <div style="font-size: 0.8rem; color: #6ee7b7;">Files Added</div>
+      <div style="font-size: 1.4rem; font-weight: 700; color: #10b981;" id="live-added-count">
+        {{ sync_status.latest_event.files_added if sync_status.latest_event else 0 }}
+      </div>
+    </div>
+
+    <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: var(--radius-md); padding: 12px 16px;">
+      <div style="font-size: 0.8rem; color: #fcd34d;">Files Modified</div>
+      <div style="font-size: 1.4rem; font-weight: 700; color: #f59e0b;" id="live-modified-count">
+        {{ sync_status.latest_event.files_modified if sync_status.latest_event else 0 }}
+      </div>
+    </div>
+
+    <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: var(--radius-md); padding: 12px 16px;">
+      <div style="font-size: 0.8rem; color: #fca5a5;">Files Deleted</div>
+      <div style="font-size: 1.4rem; font-weight: 700; color: #ef4444;" id="live-deleted-count">
+        {{ sync_status.latest_event.files_deleted if sync_status.latest_event else 0 }}
+      </div>
+    </div>
+
+    <div style="background: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: var(--radius-md); padding: 12px 16px;">
+      <div style="font-size: 0.8rem; color: #cbd5e1;">Unchanged</div>
+      <div style="font-size: 1.4rem; font-weight: 700; color: #94a3b8;" id="live-unchanged-count">
+        {{ sync_status.latest_event.files_unchanged if sync_status.latest_event else 0 }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Live Activity Stream -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="4 17 10 11 4 5"/>
+        <line x1="12" y1="19" x2="20" y2="19"/>
+      </svg>
+      Live Activity Stream
+    </h3>
+    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('live-terminal').innerHTML = ''">
+      Clear Console
+    </button>
+  </div>
+  <div class="terminal-box" id="live-terminal">
+    <div class="log-entry" style="color: var(--text-muted);">
+      [System] Connected to live event stream. Real-time file sync events will stream below.
+    </div>
+  </div>
+</div>
+
+{% if not sync_status.is_running and pairs %}
+<div class="card" style="margin-top: 24px;">
+  <div class="card-header">
+    <h3 class="card-title">Start a Sync Run</h3>
+  </div>
+  <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+    {% for p in pairs %}
+    <button class="btn btn-primary" onclick="triggerSync('{{ p.id }}', false)">
+      Sync {{ p.name }}
+    </button>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

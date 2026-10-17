@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Sync Pairs{% endblock %}
+{% block header_title %}Configured Sync Pairs{% endblock %}
+
+{% block header_actions %}
+  <a href="/pairs/new" class="btn btn-primary" id="btn-add-pair">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="12" y1="5" x2="12" y2="19"/>
+      <line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+    Add Sync Pair
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Name / ID</th>
+          <th>Source Directory</th>
+          <th>Destination Directory</th>
+          <th>Mode</th>
+          <th>Exclusions</th>
+          <th>Options</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if pairs %}
+          {% for p in pairs %}
+          <tr>
+            <td>
+              <strong style="color: #fff; font-size: 0.95rem;">{{ p.name }}</strong>
+              <div style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">{{ p.id }}</div>
+            </td>
+            <td>
+              <span style="font-family: var(--font-mono); font-size: 0.85rem; color: #cbd5e1; word-break: break-all;">
+                {{ p.source }}
+              </span>
+            </td>
+            <td>
+              <span style="font-family: var(--font-mono); font-size: 0.85rem; color: #cbd5e1; word-break: break-all;">
+                {{ p.destination }}
+              </span>
+            </td>
+            <td>
+              <span class="badge badge-mode">{{ p.mode }}</span>
+            </td>
+            <td>
+              {% if p.exclude %}
+                <span style="font-size: 0.8rem; color: var(--text-secondary);" title="{{ p.exclude | join(', ') }}">
+                  {{ p.exclude | length }} rule(s)
+                </span>
+              {% else %}
+                <span style="color: var(--text-muted); font-size: 0.8rem;">None</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if p.checksum %}
+                <span class="badge" style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; font-size: 0.7rem;">SHA-256</span>
+              {% endif %}
+              {% if p.bandwidth_limit %}
+                <span class="badge" style="background: rgba(14, 165, 233, 0.15); color: #7dd3fc; font-size: 0.7rem;">{{ p.bandwidth_limit }}</span>
+              {% endif %}
+            </td>
+            <td style="text-align: right; white-space: nowrap;">
+              <button class="btn btn-primary btn-sm" onclick="triggerSync('{{ p.id }}', false)" title="Start Live Sync">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                Sync
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="triggerSync('{{ p.id }}', true)" title="Preview with Dry Run">
+                Dry Run
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="testPairPaths('{{ p.id }}')" title="Check path readability and destination disk">
+                Test
+              </button>
+              <a href="/pairs/{{ p.id }}/edit" class="btn btn-secondary btn-sm" title="Edit Pair">Edit</a>
+              <button class="btn btn-danger btn-sm" onclick="deletePair('{{ p.id }}', '{{ p.name }}')" title="Delete Pair">
+                &times;
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
+              No sync pairs configured yet. Click "Add Sync Pair" above to configure your first backup job.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

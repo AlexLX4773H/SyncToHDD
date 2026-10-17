@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block header_title %}Dashboard Overview{% endblock %}
+
+{% block header_actions %}
+  <button class="btn btn-secondary" onclick="triggerSyncAll(true)">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+    Dry Run All
+  </button>
+  <button class="btn btn-primary" onclick="triggerSyncAll(false)">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polygon points="5 3 19 12 5 21 5 3"/>
+    </svg>
+    Sync All Pairs
+  </button>
+{% endblock %}
+
+{% block content %}
+<!-- Metrics Summary Cards -->
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-icon-wrap" style="color: #6366f1;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+    </div>
+    <div>
+      <div class="metric-value">{{ stats.total_runs }}</div>
+      <div class="metric-label">Total Sync Runs</div>
+    </div>
+  </div>
+
+  <div class="metric-card">
+    <div class="metric-icon-wrap" style="color: #10b981;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+        <polyline points="22 4 12 14.01 9 11.01"/>
+      </svg>
+    </div>
+    <div>
+      <div class="metric-value">{{ stats.completed_runs }}</div>
+      <div class="metric-label">Completed Successfully</div>
+    </div>
+  </div>
+
+  <div class="metric-card">
+    <div class="metric-icon-wrap" style="color: #ef4444;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="15" y1="9" x2="9" y2="15"/>
+        <line x1="9" y1="9" x2="15" y2="15"/>
+      </svg>
+    </div>
+    <div>
+      <div class="metric-value">{{ stats.failed_runs }}</div>
+      <div class="metric-label">Failed Runs</div>
+    </div>
+  </div>
+
+  <div class="metric-card">
+    <div class="metric-icon-wrap" style="color: #0ea5e9;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+    </div>
+    <div>
+      <div class="metric-value">{{ stats.total_bytes_transferred | format_bytes }}</div>
+      <div class="metric-label">Data Transferred</div>
+    </div>
+  </div>
+</div>
+
+<!-- Storage and Destination Disk Space -->
+{% if disks %}
+<div class="card" style="margin-bottom: 28px;">
+  <div class="card-header">
+    <h2 class="card-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+        <line x1="6" y1="6" x2="6.01" y2="6"/>
+        <line x1="6" y1="18" x2="6.01" y2="18"/>
+      </svg>
+      Destination Storage Drives
+    </h2>
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+    {% for d in disks %}
+    <div style="background: rgba(15, 23, 42, 0.5); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+        <span style="font-weight: 600; color: #fff;">{{ d.mount_path }}</span>
+        <span style="color: var(--text-secondary); font-size: 0.85rem;">{{ d.free_bytes | format_bytes }} Free</span>
+      </div>
+      <div class="disk-bar-bg">
+        <div class="disk-bar-fill {% if d.percent_used > 85 %}danger{% elif d.percent_used > 70 %}warn{% endif %}" style="width: {{ d.percent_used }}%;"></div>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 0.8rem; color: var(--text-muted);">
+        <span>{{ d.used_bytes | format_bytes }} used of {{ d.total_bytes | format_bytes }}</span>
+        <span>{{ d.percent_used }}%</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Quick Sync Pairs -->
+<div class="card" style="margin-bottom: 28px;">
+  <div class="card-header">
+    <h2 class="card-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+      </svg>
+      Configured Sync Pairs
+    </h2>
+    <a href="/pairs" class="btn btn-secondary btn-sm">Manage Pairs &rarr;</a>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+    {% for pair in config.sync_pairs %}
+    <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+        <div>
+          <h3 style="font-size: 1rem; font-weight: 600; color: #fff;">{{ pair.name }}</h3>
+          <span class="badge badge-mode" style="margin-top: 4px;">{{ pair.mode }}</span>
+          {% if pair.checksum %}
+          <span class="badge" style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.2);">SHA-256</span>
+          {% endif %}
+        </div>
+      </div>
+      <div style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 16px;">
+        <div style="margin-bottom: 4px;"><strong>From:</strong> <span style="font-family: var(--font-mono); color: #cbd5e1;">{{ pair.source }}</span></div>
+        <div><strong>To:</strong> <span style="font-family: var(--font-mono); color: #cbd5e1;">{{ pair.destination }}</span></div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-primary btn-sm" style="flex: 1;" onclick="triggerSync('{{ pair.id }}', false)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          Sync
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="triggerSync('{{ pair.id }}', true)">
+          Dry Run
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Recent Runs Table -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+      Recent Sync Runs
+    </h2>
+    <a href="/runs" class="btn btn-secondary btn-sm">View All History &rarr;</a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Sync Pair</th>
+          <th>Started</th>
+          <th>Duration</th>
+          <th>Changes (+ / ~ / -)</th>
+          <th>Transferred</th>
+          <th>Mode</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if stats.recent_runs %}
+          {% for run in stats.recent_runs %}
+          <tr>
+            <td>
+              <span class="badge badge-{{ run.status }}">{{ run.status }}</span>
+            </td>
+            <td>
+              <strong style="color: #fff;">{{ run.sync_pair_name }}</strong>
+            </td>
+            <td style="color: var(--text-secondary);">
+              {{ run.started_at.strftime('%Y-%m-%d %H:%M') if run.started_at else '-' }}
+            </td>
+            <td style="color: var(--text-secondary);">
+              {{ run.started_at | format_duration(run.finished_at) }}
+            </td>
+            <td>
+              <span style="color: #10b981; font-weight: 600;">+{{ run.files_added }}</span>
+              <span style="color: #f59e0b; margin: 0 4px; font-weight: 600;">~{{ run.files_modified }}</span>
+              <span style="color: #ef4444; font-weight: 600;">-{{ run.files_deleted }}</span>
+            </td>
+            <td style="font-family: var(--font-mono);">
+              {{ run.bytes_transferred | format_bytes }}
+            </td>
+            <td>
+              {% if run.dry_run %}
+                <span class="badge badge-mode">Dry Run</span>
+              {% else %}
+                <span style="color: var(--text-muted); font-size: 0.8rem;">Live</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="/runs/{{ run.run_id }}" class="btn btn-secondary btn-sm">Details</a>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted);">
+              No sync runs recorded yet. Click "Sync" above to start your first backup!
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

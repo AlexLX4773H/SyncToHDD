@@ -1,0 +1,30 @@
+server:
+  host: 0.0.0.0
+  port: 6060
+  log_level: info
+database:
+  path: ./data/synctohdd.db
+sync_pairs:
+- id: manga-cbz-backup
+  name: Manga CBZ Backup
+  source: /sg2b/Share2sgb/Manga/Manga_CBZ_1
+  destination: /media/devmon/LX2T/BackupServer
+  mode: mirror
+  exclude:
+  - '*.tmp'
+  - .thumbs/
+  - .DS_Store
+  - Thumbs.db
+  checksum: false
+  bandwidth_limit: null
+- id: documents-backup
+  name: Documents Backup
+  source: /home/alex/Documents
+  destination: /media/devmon/LX2T/BackupServer/Documents
+  mode: additive
+  exclude:
+  - node_modules/
+  - __pycache__/
+  - '*.log'
+  checksum: false
+  bandwidth_limit: null
