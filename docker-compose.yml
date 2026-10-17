@@ -2,7 +2,8 @@ name: synctohdd
 
 services:
   synctohdd:
-    image: ghcr.io/alexlx4773h/synctohdd:latest
+    image: ghcr.io/alexlx4773h/synctohdd:v0.1.1
+    pull_policy: always
     build: .
     container_name: synctohdd
     restart: unless-stopped
