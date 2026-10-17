@@ -1,7 +1,8 @@
-version: "3.8"
+name: synctohdd
 
 services:
   synctohdd:
+    image: ghcr.io/alexlx4773h/synctohdd:latest
     build: .
     container_name: synctohdd
     restart: unless-stopped
@@ -11,13 +12,48 @@ services:
       - SYNCTOHDD_CONFIG=/app/config.yaml
       - PYTHONUNBUFFERED=1
     volumes:
-      # Persistent configuration and database
+      # Persistent configuration & history database
       - ./config.yaml:/app/config.yaml
       - ./data:/app/data
 
-      # Host filesystem mounts (Adjust these to match your actual server paths)
-      # Source data: Read-only mount recommended for backup safety
+      # Host filesystem mounts (Adjust these host paths to match your Ubuntu / CasaOS paths)
+      # Source data directory (read-only recommended for safety)
       - /sg2b:/sg2b:ro
 
-      # Destination external USB3 HDD: Read-write mount required
-      - /media/devmon/LX2T:/media/devmon/LX2T
+      # Destination External USB3 HDD (mounted on Ubuntu / CasaOS at /media/devmon/LX2T)
+      - /media/devmon/LX2T:/media/devmon/LX2T:rw
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: synctohdd
+  author: Alex
+  category: Backup
+  developer: AlexLX4773H
+  title:
+    en_US: SyncToHDD
+  tagline:
+    en_US: Backup server data to external USB3 HDD with real-time Web UI
+  description:
+    en_US: |
+      Self-hosted file, folder, and directory backup and synchronization tool with real-time Web UI and full historical run tracking.
+      
+      Features:
+      • Back up Linux server directories directly to an external USB3 HDD
+      • High performance incremental sync using rsync with automatic change tracking
+      • Live progress tracking in your browser with transfer speed and file counters
+      • Full run history: inspect added, modified, and deleted files with sizes
+      • Dry-run mode: preview what would be changed without touching disk
+      • Mirror (delete removed files) and Additive (never delete) backup modes
+  icon: https://raw.githubusercontent.com/AlexLX4773H/SyncToHDD/master/assets/icon.png
+  thumbnail: https://raw.githubusercontent.com/AlexLX4773H/SyncToHDD/master/assets/icon.png
+  port_map: "6060"
+  port: 6060
+  scheme: http
+  index: /
+  tips:
+    before_install:
+      en_US: |
+        1. Make sure your USB3 external HDD is connected and mounted in Ubuntu / CasaOS (e.g. /media/devmon/LX2T).
+        2. Verify that the volume paths under 'volumes' in the compose configuration match your source directory and external drive mount path.
