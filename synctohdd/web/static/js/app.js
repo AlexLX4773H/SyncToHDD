@@ -223,6 +223,22 @@ async function deletePair(pairId, pairName) {
   }
 }
 
+async function duplicatePairDirect(pairId) {
+  try {
+    const res = await fetch(`/api/pairs/${pairId}/duplicate`, { method: "POST" });
+    if (res.ok) {
+      const data = await res.json();
+      showToast(`Sync pair duplicated as "${data.name}"`, "success");
+      setTimeout(() => window.location.reload(), 500);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || "Failed to duplicate sync pair", "danger");
+    }
+  } catch (err) {
+    showToast("Error duplicating sync pair", "danger");
+  }
+}
+
 async function deleteRun(runId) {
   if (!confirm("Delete this run record and change history?")) {
     return;

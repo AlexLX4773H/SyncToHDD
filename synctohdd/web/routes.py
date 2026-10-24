@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from synctohdd.config import load_config, save_config, SyncPairConfig
+from synctohdd.config import load_config, save_config, SyncPairConfig, generate_duplicate_name
 from synctohdd.db.database import get_db
 from synctohdd.db import crud
 from synctohdd.engine.manager import sync_manager
@@ -112,6 +112,40 @@ async def pair_edit_view(pair_id: str, request: Request):
         },
     )
 
+@router.get("/pairs/{pair_id}/duplicate", response_class=HTMLResponse)
+async def pair_duplicate_view(pair_id: str, request: Request):
+    """Render form to duplicate an existing sync pair."""
+    config = load_config()
+    pair = config.get_pair_by_id(pair_id)
+    if not pair:
+        raise HTTPException(status_code=404, detail="Sync pair not found")
+
+    existing_names = {p.name for p in config.sync_pairs}
+    suggested_name = generate_duplicate_name(pair.name, existing_names)
+
+    duplicate_pair = SyncPairConfig(
+        id="",
+        name=suggested_name,
+        source=pair.source,
+        destination=pair.destination,
+        mode=pair.mode,
+        exclude=list(pair.exclude),
+        checksum=pair.checksum,
+        bandwidth_limit=pair.bandwidth_limit,
+    )
+
+    return templates.TemplateResponse(
+        request=request,
+        name="pair_form.html",
+        context={
+            "pair": duplicate_pair,
+            "original_pair": pair,
+            "is_new": True,
+            "is_duplicate": True,
+            "active_tab": "pairs",
+        },
+    )
+
 @router.post("/pairs/save")
 async def pair_save_action(
     id: str = Form(""),
@@ -139,13 +173,14 @@ async def pair_save_action(
         checksum=bool(checksum),
         bandwidth_limit=bandwidth_limit.strip() or None,
     )
-    pair.ensure_id()
+    pair.ensure_id(config.sync_pairs if not id.strip() else None)
 
     existing_idx = None
-    for idx, p in enumerate(config.sync_pairs):
-        if p.id == pair.id or (id and p.id == id):
-            existing_idx = idx
-            break
+    if id.strip():
+        for idx, p in enumerate(config.sync_pairs):
+            if p.id == id.strip():
+                existing_idx = idx
+                break
 
     if existing_idx is not None:
         config.sync_pairs[existing_idx] = pair

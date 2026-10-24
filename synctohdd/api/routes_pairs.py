@@ -68,6 +68,16 @@ def delete_sync_pair(pair_id: str):
     save_config(config)
     return {"message": f"Sync pair '{pair_id}' deleted successfully"}
 
+@router.post("/{pair_id}/duplicate", response_model=SyncPairConfig, status_code=status.HTTP_201_CREATED)
+def duplicate_sync_pair(pair_id: str):
+    """Duplicate an existing sync pair with a new unique ID and name."""
+    config = load_config()
+    new_pair = config.duplicate_pair(pair_id)
+    if not new_pair:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sync pair not found")
+    save_config(config)
+    return new_pair
+
 @router.post("/{pair_id}/test", response_model=Dict[str, Any])
 def test_sync_pair_paths(pair_id: str):
     """Test accessibility, readability, and disk space for a pair's source and destination."""

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}{% if is_new %}Add Sync Pair{% else %}Edit {{ pair.name }}{% endif %}{% endblock %}
-{% block header_title %}{% if is_new %}Add New Sync Pair{% else %}Edit Sync Pair{% endif %}{% endblock %}
+{% block title %}{% if is_duplicate %}Duplicate {{ original_pair.name }}{% elif is_new %}Add Sync Pair{% else %}Edit {{ pair.name }}{% endif %}{% endblock %}
+{% block header_title %}{% if is_duplicate %}Duplicate Sync Pair{% elif is_new %}Add New Sync Pair{% else %}Edit Sync Pair{% endif %}{% endblock %}
 
 {% block header_actions %}
   <a href="/pairs" class="btn btn-secondary">Cancel</a>
@@ -9,8 +9,20 @@
 
 {% block content %}
 <div class="card" style="max-width: 800px; margin: 0 auto;">
+  {% if is_duplicate %}
+  <div style="background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 24px; display: flex; align-items: center; gap: 14px; color: #cbd5e1; font-size: 0.9rem;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #818cf8; flex-shrink: 0;">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+    </svg>
+    <div>
+      Duplicating configuration from <strong>{{ original_pair.name }}</strong>. Update paths or options as needed and save as a new sync pair.
+    </div>
+  </div>
+  {% endif %}
+
   <form action="/pairs/save" method="POST">
-    <input type="hidden" name="id" value="{{ pair.id if pair else '' }}">
+    <input type="hidden" name="id" value="{{ pair.id if pair and not is_duplicate else '' }}">
 
     <div class="form-group">
       <label class="form-label" for="input-name">Pair Name *</label>
@@ -65,8 +77,17 @@
 
     <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; border-top: 1px solid var(--border-subtle); padding-top: 20px;">
       <a href="/pairs" class="btn btn-secondary">Cancel</a>
+      {% if not is_new and not is_duplicate %}
+      <a href="/pairs/{{ pair.id }}/duplicate" class="btn btn-secondary" title="Create a duplicate of this pair">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        Duplicate
+      </a>
+      {% endif %}
       <button type="submit" class="btn btn-primary" id="btn-save-pair">
-        {% if is_new %}Create Sync Pair{% else %}Save Changes{% endif %}
+        {% if is_duplicate %}Create Duplicate Pair{% elif is_new %}Create Sync Pair{% else %}Save Changes{% endif %}
       </button>
     </div>
   </form>

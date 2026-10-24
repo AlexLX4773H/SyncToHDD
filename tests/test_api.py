@@ -37,8 +37,25 @@ def test_api_and_web_ui():
         assert get_res.status_code == 200
         assert get_res.json()["name"] == "API Test Pair"
 
-        del_res = client.delete("/api/pairs/api-test-pair")
-        assert del_res.status_code == 200
+        # Test duplicate via API
+        dup_res = client.post("/api/pairs/api-test-pair/duplicate")
+        assert dup_res.status_code == 201
+        dup_data = dup_res.json()
+        assert dup_data["name"] == "API Test Pair (Copy)"
+        assert dup_data["id"] == "api-test-pair-copy"
+        assert dup_data["source"] == "/tmp/source_test"
+        assert dup_data["destination"] == "/tmp/dest_test"
+
+        # Duplicate again to verify suffix increment
+        dup2_res = client.post("/api/pairs/api-test-pair/duplicate")
+        assert dup2_res.status_code == 201
+        dup2_data = dup2_res.json()
+        assert dup2_data["name"] == "API Test Pair (Copy 2)"
+        assert dup2_data["id"] == "api-test-pair-copy-2"
+
+        # Clean up duplicates
+        client.delete(f"/api/pairs/{dup_data['id']}")
+        client.delete(f"/api/pairs/{dup2_data['id']}")
 
         # 4. Web UI routes
         res_dash = client.get("/")
@@ -48,6 +65,39 @@ def test_api_and_web_ui():
         res_pairs = client.get("/pairs")
         assert res_pairs.status_code == 200
         assert "Configured Sync Pairs" in res_pairs.text
+        assert "Duplicate" in res_pairs.text
+        assert f"/pairs/api-test-pair/duplicate" in res_pairs.text
+
+        # Test duplicate form view
+        res_dup_view = client.get("/pairs/api-test-pair/duplicate")
+        assert res_dup_view.status_code == 200
+        assert "Duplicate Sync Pair" in res_dup_view.text
+        assert "API Test Pair (Copy)" in res_dup_view.text
+        assert "Create Duplicate Pair" in res_dup_view.text
+
+        # Test saving duplicate pair via form submission
+        res_dup_save = client.post(
+            "/pairs/save",
+            data={
+                "id": "",
+                "name": "API Test Pair (Copy Saved)",
+                "source": "/tmp/source_test",
+                "destination": "/tmp/dest_test_copy",
+                "mode": "mirror",
+                "exclude_text": "*.log\n*.bak",
+                "checksum": "true",
+                "bandwidth_limit": "25M",
+            },
+            follow_redirects=False,
+        )
+        assert res_dup_save.status_code == 303
+        saved_copy_res = client.get("/api/pairs/api-test-pair-copy-saved")
+        assert saved_copy_res.status_code == 200
+        assert saved_copy_res.json()["checksum"] is True
+        client.delete("/api/pairs/api-test-pair-copy-saved")
+
+        del_res = client.delete("/api/pairs/api-test-pair")
+        assert del_res.status_code == 200
 
         res_active = client.get("/active")
         assert res_active.status_code == 200

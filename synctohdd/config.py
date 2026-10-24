@@ -8,6 +8,33 @@ from pydantic import BaseModel, Field
 CONFIG_FILE_ENV = "SYNCTOHDD_CONFIG"
 DEFAULT_CONFIG_PATH = Path("config.yaml")
 
+def generate_duplicate_name(base_name: str, existing_names: set) -> str:
+    """Generate a clean copy name like 'Name (Copy)' or 'Name (Copy 2)' avoiding conflicts."""
+    m = re.match(r"^(.*?)(?:\s+\(Copy(?:\s+(\d+))?\))?$", base_name)
+    root = m.group(1).strip() if m else base_name.strip()
+
+    candidate = f"{root} (Copy)"
+    if candidate not in existing_names:
+        return candidate
+
+    counter = 2
+    while True:
+        candidate = f"{root} (Copy {counter})"
+        if candidate not in existing_names:
+            return candidate
+        counter += 1
+
+def generate_unique_pair_id(base_name: str, existing_ids: set) -> str:
+    """Generate a unique slug ID from a name, ensuring no collision with existing IDs."""
+    slug = re.sub(r"[^a-zA-Z0-9_-]+", "-", base_name.lower()).strip("-") or "sync-pair"
+    if slug not in existing_ids:
+        return slug
+
+    counter = 2
+    while f"{slug}-{counter}" in existing_ids:
+        counter += 1
+    return f"{slug}-{counter}"
+
 class SyncPairConfig(BaseModel):
     id: str = Field(default="", description="Unique identifier for the sync pair")
     name: str = Field(..., description="Human-readable name")
@@ -21,10 +48,21 @@ class SyncPairConfig(BaseModel):
     checksum: bool = Field(default=False, description="Compare by SHA-256 hash instead of mtime/size")
     bandwidth_limit: Optional[str] = Field(default=None, description="Optional bandwidth rate limit e.g. 50M")
 
-    def ensure_id(self) -> str:
+    def ensure_id(self, existing_pairs: Optional[List["SyncPairConfig"]] = None) -> str:
         if not self.id:
             slug = re.sub(r"[^a-zA-Z0-9_-]+", "-", self.name.lower()).strip("-")
-            self.id = slug or "sync-pair"
+            base_slug = slug or "sync-pair"
+            if existing_pairs:
+                existing_ids = {p.id for p in existing_pairs if p is not self}
+                if base_slug not in existing_ids:
+                    self.id = base_slug
+                else:
+                    counter = 2
+                    while f"{base_slug}-{counter}" in existing_ids:
+                        counter += 1
+                    self.id = f"{base_slug}-{counter}"
+            else:
+                self.id = base_slug
         return self.id
 
 class ServerConfig(BaseModel):
@@ -45,6 +83,30 @@ class AppConfig(BaseModel):
             if pair.id == pair_id or pair.name == pair_id:
                 return pair
         return None
+
+    def duplicate_pair(self, pair_id: str) -> Optional[SyncPairConfig]:
+        original = self.get_pair_by_id(pair_id)
+        if not original:
+            return None
+
+        existing_names = {p.name for p in self.sync_pairs}
+        existing_ids = {p.id for p in self.sync_pairs}
+
+        new_name = generate_duplicate_name(original.name, existing_names)
+        new_id = generate_unique_pair_id(new_name, existing_ids)
+
+        new_pair = SyncPairConfig(
+            id=new_id,
+            name=new_name,
+            source=original.source,
+            destination=original.destination,
+            mode=original.mode,
+            exclude=list(original.exclude),
+            checksum=original.checksum,
+            bandwidth_limit=original.bandwidth_limit,
+        )
+        self.sync_pairs.append(new_pair)
+        return new_pair
 
 def get_config_path(override_path: Optional[str] = None) -> Path:
     if override_path:
