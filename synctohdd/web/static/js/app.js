@@ -120,6 +120,12 @@ function handleLiveProgress(event) {
     statusBadge.textContent = event.status;
     statusBadge.className = `badge badge-${event.status}`;
   }
+
+  // Update active run title if pair changes during batch sync
+  const titleEl = document.getElementById("active-run-title");
+  if (titleEl && event.pair_name) {
+    titleEl.textContent = event.pair_name;
+  }
 }
 
 function escapeHtml(str) {

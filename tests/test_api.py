@@ -59,8 +59,12 @@ def test_api_and_web_ui():
 
         # 5. Run History & Clear API
         import asyncio
+        import time
         from synctohdd.db.database import get_session_factory
         from synctohdd.db import crud
+
+        # Clear any prior runs to ensure deterministic state
+        client.delete("/api/runs?keep_running=false")
 
         async def setup_test_runs():
             factory = get_session_factory()
@@ -97,7 +101,7 @@ def test_api_and_web_ui():
         assert "Clear All History" in res_runs_html.text
 
         # Test DELETE /api/runs (clear all history)
-        del_runs = client.delete("/api/runs")
+        del_runs = client.delete("/api/runs?keep_running=false")
         assert del_runs.status_code == 200
         assert del_runs.json()["deleted_count"] >= 2
 
@@ -109,6 +113,33 @@ def test_api_and_web_ui():
         # Test POST /runs/clear web action
         res_clear_web = client.post("/runs/clear", follow_redirects=False)
         assert res_clear_web.status_code == 303
+
+        # 7. Test /api/sync/all routing (prevent /{pair_id} capturing 'all')
+        with tempfile.TemporaryDirectory() as src_dir, tempfile.TemporaryDirectory() as dst_dir:
+            test_pair_obj = {
+                "id": "sync-all-test-pair",
+                "name": "Sync All Test Pair",
+                "source": src_dir,
+                "destination": dst_dir,
+                "mode": "mirror",
+            }
+            client.post("/api/pairs", json=test_pair_obj)
+
+            # Trigger sync all dry run
+            res_sync_all = client.post("/api/sync/all", json={"dry_run": True})
+            assert res_sync_all.status_code == 200, f"Expected 200, got {res_sync_all.status_code}: {res_sync_all.text}"
+            sync_all_data = res_sync_all.json()
+            assert sync_all_data["status"] == "started"
+            assert "queued_pairs" in sync_all_data
+            assert "sync-all-test-pair" in sync_all_data["queued_pairs"]
+
+            # Give sequence a moment to finish dry run
+            time.sleep(0.5)
+            client.delete("/api/sync/active")
+
+            # Cleanup pair and runs
+            client.delete("/api/pairs/sync-all-test-pair")
+            client.delete("/api/runs?keep_running=false")
 
         print("All API & Web UI integration tests passed successfully!")
 

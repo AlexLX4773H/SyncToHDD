@@ -14,6 +14,22 @@ def get_sync_status():
     """Get active sync engine status and current progress."""
     return sync_manager.get_status()
 
+@router.post("/all", response_model=Dict[str, Any])
+async def trigger_sync_all(req: SyncRequest = SyncRequest()):
+    """Trigger sync for all configured pairs sequentially."""
+    try:
+        queued_pairs = await sync_manager.start_sync_all_jobs(dry_run=req.dry_run)
+        return {
+            "status": "started",
+            "queued_pairs": queued_pairs,
+            "dry_run": req.dry_run,
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(e),
+        )
+
 @router.post("/{pair_id}", response_model=Dict[str, Any])
 async def trigger_sync_pair(pair_id: str, req: SyncRequest = SyncRequest()):
     """Trigger a sync for a specific pair."""
@@ -35,22 +51,6 @@ async def trigger_sync_pair(pair_id: str, req: SyncRequest = SyncRequest()):
             "dry_run": req.dry_run,
         }
     except RuntimeError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e),
-        )
-
-@router.post("/all", response_model=Dict[str, Any])
-async def trigger_sync_all(req: SyncRequest = SyncRequest()):
-    """Trigger sync for all configured pairs sequentially."""
-    try:
-        queued_pairs = await sync_manager.start_sync_all_jobs(dry_run=req.dry_run)
-        return {
-            "status": "started",
-            "queued_pairs": queued_pairs,
-            "dry_run": req.dry_run,
-        }
-    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),

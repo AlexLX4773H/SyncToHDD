@@ -17,6 +17,7 @@ class SyncManager:
     def __init__(self):
         self._lock = threading.Lock()
         self.is_running: bool = False
+        self.is_batch_running: bool = False
         self.active_run_id: Optional[str] = None
         self.active_pair_id: Optional[str] = None
         self.active_pair_name: Optional[str] = None
@@ -70,19 +71,20 @@ class SyncManager:
             self._listeners.discard(dq)
 
     def cancel_current_sync(self) -> bool:
-        """Signal cancellation for currently running sync."""
+        """Signal cancellation for currently running sync or batch."""
         with self._lock:
-            if not self.is_running:
+            if not self.is_running and not self.is_batch_running:
                 return False
             self._cancel_flag.set()
-            logger.info(f"Cancellation requested for run {self.active_run_id}")
+            logger.info(f"Cancellation requested for run {self.active_run_id} (batch={self.is_batch_running})")
             return True
 
     def get_status(self) -> Dict[str, Any]:
         """Return current status dictionary for API and UI."""
         with self._lock:
             return {
-                "is_running": self.is_running,
+                "is_running": self.is_running or self.is_batch_running,
+                "is_batch_running": self.is_batch_running,
                 "active_run_id": self.active_run_id,
                 "active_pair_id": self.active_pair_id,
                 "active_pair_name": self.active_pair_name,
@@ -95,11 +97,12 @@ class SyncManager:
         pair: SyncPairConfig,
         dry_run: bool = False,
         config: Optional[AppConfig] = None,
+        from_batch: bool = False,
     ) -> str:
         """Initiate a sync job for a single pair."""
         with self._lock:
-            if self.is_running:
-                raise RuntimeError(f"A sync is already in progress: {self.active_pair_name} ({self.active_run_id})")
+            if self.is_running or (self.is_batch_running and not from_batch):
+                raise RuntimeError(f"A sync is already in progress: {self.active_pair_name or 'Batch'} ({self.active_run_id})")
 
             run_id = str(uuid.uuid4())
             self.is_running = True
@@ -133,8 +136,10 @@ class SyncManager:
             raise ValueError("No sync pairs configured")
 
         with self._lock:
-            if self.is_running:
+            if self.is_running or self.is_batch_running:
                 raise RuntimeError("A sync is already in progress")
+            self._cancel_flag.clear()
+            self.is_batch_running = True
 
         # Launch background sequence runner
         asyncio.create_task(self._execute_all_sequence(cfg.sync_pairs, dry_run))
@@ -142,16 +147,21 @@ class SyncManager:
 
     async def _execute_all_sequence(self, pairs: List[SyncPairConfig], dry_run: bool) -> None:
         """Run multiple pairs in sequence."""
-        for pair in pairs:
-            if self._cancel_flag.is_set():
-                break
-            try:
-                run_id = await self.start_sync_job(pair, dry_run=dry_run)
-                # Wait until active job completes
-                while self.is_running and self.active_run_id == run_id:
-                    await asyncio.sleep(0.5)
-            except Exception as e:
-                logger.error(f"Error in batch sequence for pair {pair.name}: {e}")
+        try:
+            for pair in pairs:
+                if self._cancel_flag.is_set():
+                    logger.info("Batch sync aborted due to cancellation flag")
+                    break
+                try:
+                    run_id = await self.start_sync_job(pair, dry_run=dry_run, from_batch=True)
+                    # Wait until active job completes
+                    while self.is_running and self.active_run_id == run_id:
+                        await asyncio.sleep(0.5)
+                except Exception as e:
+                    logger.error(f"Error in batch sequence for pair {pair.name}: {e}")
+        finally:
+            with self._lock:
+                self.is_batch_running = False
 
     async def _execute_sync_task(
         self,

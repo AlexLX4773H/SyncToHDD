@@ -4,6 +4,19 @@
 {% block header_title %}Configured Sync Pairs{% endblock %}
 
 {% block header_actions %}
+  <button class="btn btn-secondary" onclick="triggerSyncAll(true)">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+    Dry Run All
+  </button>
+  <button class="btn btn-secondary" onclick="triggerSyncAll(false)">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polygon points="5 3 19 12 5 21 5 3"/>
+    </svg>
+    Sync All Pairs
+  </button>
   <a href="/pairs/new" class="btn btn-primary" id="btn-add-pair">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <line x1="12" y1="5" x2="12" y2="19"/>
