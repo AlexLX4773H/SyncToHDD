@@ -243,4 +243,71 @@
     </table>
   </div>
 </div>
+
+<!-- Clear History Confirmation Modal -->
+<div class="modal-overlay" id="clear-modal" onclick="if(event.target===this)closeClearModal()">
+  <div class="modal-card">
+    <h3 class="modal-title">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      Clear Sync Run History
+    </h3>
+    <p class="modal-body">
+      Are you sure you want to permanently clear all sync run history and recorded change logs?
+    </p>
+    <form method="POST" action="/runs/clear" id="clear-history-form" onsubmit="handleClearSubmit(event)">
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeClearModal()">Cancel</button>
+        <button type="submit" class="btn btn-danger" id="clear-confirm-submit-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          Yes, Delete History
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openClearModal() {
+  const modal = document.getElementById('clear-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeClearModal() {
+  const modal = document.getElementById('clear-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+async function handleClearSubmit(e) {
+  e.preventDefault();
+  const submitBtn = document.getElementById('clear-confirm-submit-btn');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Clearing...';
+  }
+
+  try {
+    const res = await fetch('/api/runs', { method: 'DELETE' });
+    if (res.ok) {
+      window.location.reload();
+      return;
+    }
+  } catch (err) {
+    console.warn('API DELETE failed, falling back to form submit:', err);
+  }
+
+  document.getElementById('clear-history-form').submit();
+}
+
+window.clearAllRuns = function() {
+  openClearModal();
+};
+</script>
 {% endblock %}
+

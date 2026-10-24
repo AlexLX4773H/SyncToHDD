@@ -2,7 +2,9 @@ import math
 from pathlib import Path
 from datetime import datetime, timezone
 import humanize
+from typing import Optional
 from fastapi import APIRouter, Request, Depends, Form, HTTPException
+
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -211,18 +213,19 @@ async def runs_history_view(
 @router.post("/runs/clear")
 async def runs_clear_web(
     request: Request,
-    pair: str = Form(""),
-    status: str = Form(""),
+    pair: Optional[str] = Form(None),
+    status: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db),
 ):
     """Web action to clear sync run history via form submission."""
     await crud.clear_all_sync_runs(
         session=db,
         keep_running=True,
-        pair_id=pair if pair else None,
-        status=status if status else None,
+        pair_id=pair.strip() if pair and pair.strip() else None,
+        status=status.strip() if status and status.strip() else None,
     )
     return RedirectResponse(url="/runs", status_code=303)
+
 
 @router.get("/runs/{run_id}", response_class=HTMLResponse)
 async def run_detail_view(

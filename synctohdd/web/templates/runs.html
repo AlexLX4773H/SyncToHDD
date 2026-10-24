@@ -7,7 +7,7 @@
   <div style="display: flex; align-items: center; gap: 14px;">
     <span style="font-size: 0.9rem; color: var(--text-secondary);">Total Runs: <strong>{{ total }}</strong></span>
     {% if overall_total > 0 or total > 0 %}
-    <button type="button" class="btn btn-danger btn-sm" onclick="clearAllRuns()" id="btn-clear-all-history" title="Clear all sync run history">
+    <button type="button" class="btn btn-danger btn-sm" onclick="openClearModal('', '')" id="btn-clear-all-history" title="Clear all sync run history">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="3 6 5 6 21 6"></polyline>
         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -48,7 +48,7 @@
     {% if selected_pair or selected_status %}
     <a href="/runs" class="btn btn-secondary btn-sm">Clear Filters</a>
     {% if total > 0 %}
-    <button type="button" class="btn btn-danger btn-sm" style="margin-left: auto;" onclick="clearAllRuns('{{ selected_pair }}', '{{ selected_status }}')" title="Clear only runs matching current filter">
+    <button type="button" class="btn btn-danger btn-sm" style="margin-left: auto;" onclick="openClearModal('{{ selected_pair }}', '{{ selected_status }}')" title="Clear only runs matching current filter">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="3 6 5 6 21 6"></polyline>
         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -56,6 +56,7 @@
       Clear Filtered Runs ({{ total }})
     </button>
     {% endif %}
+
     {% endif %}
   </form>
 </div>
@@ -141,4 +142,92 @@
   </div>
   {% endif %}
 </div>
+
+<!-- Clear History Confirmation Modal -->
+<div class="modal-overlay" id="clear-modal" onclick="if(event.target===this)closeClearModal()">
+  <div class="modal-card">
+    <h3 class="modal-title">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      Clear Sync Run History
+    </h3>
+    <p class="modal-body" id="clear-modal-body">
+      Are you sure you want to permanently clear all sync run history and recorded change logs?
+    </p>
+    <form method="POST" action="/runs/clear" id="clear-history-form" onsubmit="handleClearSubmit(event)">
+      <input type="hidden" name="pair" id="clear-form-pair" value="">
+      <input type="hidden" name="status" id="clear-form-status" value="">
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeClearModal()">Cancel</button>
+        <button type="submit" class="btn btn-danger" id="clear-confirm-submit-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          Yes, Delete History
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openClearModal(pairId, status) {
+  const modal = document.getElementById('clear-modal');
+  if (!modal) return;
+  document.getElementById('clear-form-pair').value = pairId || '';
+  document.getElementById('clear-form-status').value = status || '';
+  const bodyEl = document.getElementById('clear-modal-body');
+  if (pairId || status) {
+    bodyEl.textContent = 'Are you sure you want to permanently delete the filtered sync run records and change logs?';
+  } else {
+    bodyEl.textContent = 'Are you sure you want to permanently delete all sync run history and change logs?';
+  }
+  modal.classList.add('active');
+}
+
+function closeClearModal() {
+  const modal = document.getElementById('clear-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+async function handleClearSubmit(e) {
+  e.preventDefault();
+  const pair = document.getElementById('clear-form-pair').value;
+  const status = document.getElementById('clear-form-status').value;
+  const submitBtn = document.getElementById('clear-confirm-submit-btn');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Clearing...';
+  }
+
+  try {
+    let url = '/api/runs';
+    const params = new URLSearchParams();
+    if (pair) params.append('pair_id', pair);
+    if (status) params.append('status', status);
+    if (params.toString()) url += '?' + params.toString();
+
+    const res = await fetch(url, { method: 'DELETE' });
+    if (res.ok) {
+      window.location.href = (pair || status) ? `/runs?pair=${encodeURIComponent(pair)}&status=${encodeURIComponent(status)}` : '/runs';
+      return;
+    }
+  } catch (err) {
+    console.warn('API DELETE failed, falling back to form submit:', err);
+  }
+
+  // Fallback to standard form POST to /runs/clear
+  document.getElementById('clear-history-form').submit();
+}
+
+// Global hook in case old clearAllRuns() is called
+window.clearAllRuns = function(pairId, status) {
+  openClearModal(pairId, status);
+};
+</script>
 {% endblock %}
+
