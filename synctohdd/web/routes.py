@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from synctohdd.config import load_config, save_config, SyncPairConfig, generate_duplicate_name
+from synctohdd.config import load_config, save_config, SyncPairConfig, generate_duplicate_name, sort_sync_pairs
 from synctohdd.db.database import get_db
 from synctohdd.db import crud
 from synctohdd.engine.manager import sync_manager
@@ -63,11 +63,14 @@ async def dashboard_view(request: Request, db: AsyncSession = Depends(get_db)):
         if d and d["mount_path"] not in disks:
             disks[d["mount_path"]] = d
 
+    sorted_pairs = sort_sync_pairs(config.sync_pairs, sort_by="name", order="asc")
+
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
         context={
             "config": config,
+            "pairs": sorted_pairs,
             "stats": stats,
             "disks": list(disks.values()),
             "sync_status": sync_manager.get_status(),
@@ -78,16 +81,26 @@ async def dashboard_view(request: Request, db: AsyncSession = Depends(get_db)):
     )
 
 @router.get("/pairs", response_class=HTMLResponse)
-async def pairs_view(request: Request):
-    """Render sync pairs management view."""
+async def pairs_view(
+    request: Request,
+    sort: str = "name",
+    order: str = "asc",
+):
+    """Render sync pairs management view, ordered by name by default."""
     config = load_config()
+    normalized_sort = sort.lower().strip() if sort else "name"
+    normalized_order = "desc" if str(order).lower().strip() == "desc" else "asc"
+    sorted_pairs = sort_sync_pairs(config.sync_pairs, sort_by=normalized_sort, order=normalized_order)
+
     return templates.TemplateResponse(
         request=request,
         name="pairs.html",
         context={
-            "pairs": config.sync_pairs,
+            "pairs": sorted_pairs,
             "sync_status": sync_manager.get_status(),
             "active_tab": "pairs",
+            "current_sort": normalized_sort,
+            "current_order": normalized_order,
         },
     )
 

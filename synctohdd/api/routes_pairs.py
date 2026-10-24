@@ -1,15 +1,18 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from typing import List, Dict, Any
-from synctohdd.config import SyncPairConfig, load_config, save_config
+from synctohdd.config import SyncPairConfig, load_config, save_config, sort_sync_pairs
 from synctohdd.utils.platform import check_path_status, get_disk_usage
 
 router = APIRouter(prefix="/api/pairs", tags=["Sync Pairs"])
 
 @router.get("", response_model=List[SyncPairConfig])
-def list_sync_pairs():
-    """Retrieve all configured sync pairs."""
+def list_sync_pairs(
+    sort: str = Query("name", description="Field to sort by: name, source, destination, mode, exclude"),
+    order: str = Query("asc", description="Sort direction: asc or desc"),
+):
+    """Retrieve all configured sync pairs, ordered by name by default."""
     config = load_config()
-    return config.sync_pairs
+    return sort_sync_pairs(config.sync_pairs, sort_by=sort, order=order)
 
 @router.post("", response_model=SyncPairConfig, status_code=status.HTTP_201_CREATED)
 def create_sync_pair(pair: SyncPairConfig):

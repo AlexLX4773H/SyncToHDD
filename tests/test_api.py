@@ -83,8 +83,26 @@ def test_api_and_web_ui():
         res_pairs = client.get("/pairs")
         assert res_pairs.status_code == 200
         assert "Configured Sync Pairs" in res_pairs.text
+        assert "Sort By:" in res_pairs.text
+        assert "Name (A &rarr; Z) [Default]" in res_pairs.text
         assert "Duplicate" in res_pairs.text
         assert f"/pairs/api-test-pair/duplicate" in res_pairs.text
+
+        # Test pairs API sorting by default (name asc) and other columns
+        res_api_pairs_default = client.get("/api/pairs")
+        assert res_api_pairs_default.status_code == 200
+        names = [p["name"].lower() for p in res_api_pairs_default.json()]
+        assert names == sorted(names), f"Expected sorted names, got {names}"
+
+        res_api_pairs_desc = client.get("/api/pairs?sort=name&order=desc")
+        assert res_api_pairs_desc.status_code == 200
+        names_desc = [p["name"].lower() for p in res_api_pairs_desc.json()]
+        assert names_desc == sorted(names, reverse=True)
+
+        res_api_pairs_source = client.get("/api/pairs?sort=source&order=asc")
+        assert res_api_pairs_source.status_code == 200
+        sources = [p["source"].lower() for p in res_api_pairs_source.json()]
+        assert sources == sorted(sources)
 
         # Test duplicate form view
         res_dup_view = client.get("/pairs/api-test-pair/duplicate")

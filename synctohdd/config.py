@@ -35,6 +35,28 @@ def generate_unique_pair_id(base_name: str, existing_ids: set) -> str:
         counter += 1
     return f"{slug}-{counter}"
 
+def sort_sync_pairs(
+    pairs: List["SyncPairConfig"],
+    sort_by: str = "name",
+    order: str = "asc",
+) -> List["SyncPairConfig"]:
+    """Sort sync pairs by specified column, defaulting to name ascending (case-insensitive)."""
+    reverse = (str(order).lower().strip() == "desc")
+    key = str(sort_by).lower().strip()
+
+    if key in ("name", "id"):
+        return sorted(pairs, key=lambda p: (p.name.lower() if p.name else "", p.id.lower() if p.id else ""), reverse=reverse)
+    elif key == "source":
+        return sorted(pairs, key=lambda p: (p.source.lower() if p.source else "", p.name.lower() if p.name else ""), reverse=reverse)
+    elif key == "destination":
+        return sorted(pairs, key=lambda p: (p.destination.lower() if p.destination else "", p.name.lower() if p.name else ""), reverse=reverse)
+    elif key == "mode":
+        return sorted(pairs, key=lambda p: (p.mode.lower() if p.mode else "", p.name.lower() if p.name else ""), reverse=reverse)
+    elif key in ("exclude", "exclusions"):
+        return sorted(pairs, key=lambda p: (len(p.exclude) if p.exclude else 0, p.name.lower() if p.name else ""), reverse=reverse)
+    else:
+        return sorted(pairs, key=lambda p: (p.name.lower() if p.name else "", p.id.lower() if p.id else ""), reverse=reverse)
+
 class SyncPairConfig(BaseModel):
     id: str = Field(default="", description="Unique identifier for the sync pair")
     name: str = Field(..., description="Human-readable name")
@@ -83,6 +105,9 @@ class AppConfig(BaseModel):
             if pair.id == pair_id or pair.name == pair_id:
                 return pair
         return None
+
+    def get_sorted_pairs(self, sort_by: str = "name", order: str = "asc") -> List[SyncPairConfig]:
+        return sort_sync_pairs(self.sync_pairs, sort_by=sort_by, order=order)
 
     def duplicate_pair(self, pair_id: str) -> Optional[SyncPairConfig]:
         original = self.get_pair_by_id(pair_id)

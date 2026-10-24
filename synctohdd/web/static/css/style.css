@@ -477,6 +477,50 @@ a:hover {
   white-space: nowrap;
 }
 
+.data-table th.sortable {
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.data-table th.sortable:hover {
+  background: rgba(30, 41, 59, 0.95);
+}
+
+.data-table th.sorted-active {
+  background: rgba(30, 41, 59, 0.9);
+}
+
+.sort-header-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 14px 16px;
+  width: 100%;
+  transition: color 0.15s ease;
+}
+
+.sort-header-link:hover, .data-table th.sorted-active .sort-header-link {
+  color: #fff;
+}
+
+.sort-indicator {
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.35;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.data-table th.sortable:hover .sort-indicator {
+  opacity: 0.85;
+}
+
+.sort-indicator.active {
+  opacity: 1;
+  color: var(--accent-primary);
+}
+
 .data-table td {
   padding: 14px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);

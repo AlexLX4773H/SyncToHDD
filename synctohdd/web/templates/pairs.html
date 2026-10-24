@@ -28,17 +28,120 @@
 
 {% block content %}
 <div class="card">
+  <!-- Sort & Controls Toolbar -->
+  <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap; gap: 12px; background: rgba(15, 23, 42, 0.4);">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; display: flex; align-items: center; gap: 6px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="21" y1="10" x2="7" y2="10"></line>
+          <line x1="21" y1="6" x2="3" y2="6"></line>
+          <line x1="21" y1="14" x2="11" y2="14"></line>
+          <line x1="21" y1="18" x2="15" y2="18"></line>
+        </svg>
+        Sort By:
+      </span>
+      <select class="form-select" style="width: auto; padding: 6px 32px 6px 12px; font-size: 0.85rem;" onchange="location.href=this.value">
+        <option value="/pairs?sort=name&order=asc" {% if current_sort == 'name' and current_order == 'asc' %}selected{% endif %}>Name (A &rarr; Z) [Default]</option>
+        <option value="/pairs?sort=name&order=desc" {% if current_sort == 'name' and current_order == 'desc' %}selected{% endif %}>Name (Z &rarr; A)</option>
+        <option value="/pairs?sort=source&order=asc" {% if current_sort == 'source' and current_order == 'asc' %}selected{% endif %}>Source Directory (A &rarr; Z)</option>
+        <option value="/pairs?sort=source&order=desc" {% if current_sort == 'source' and current_order == 'desc' %}selected{% endif %}>Source Directory (Z &rarr; A)</option>
+        <option value="/pairs?sort=destination&order=asc" {% if current_sort == 'destination' and current_order == 'asc' %}selected{% endif %}>Destination Directory (A &rarr; Z)</option>
+        <option value="/pairs?sort=destination&order=desc" {% if current_sort == 'destination' and current_order == 'desc' %}selected{% endif %}>Destination Directory (Z &rarr; A)</option>
+        <option value="/pairs?sort=mode&order=asc" {% if current_sort == 'mode' and current_order == 'asc' %}selected{% endif %}>Mode (Additive / Mirror)</option>
+        <option value="/pairs?sort=exclude&order=desc" {% if current_sort == 'exclude' and current_order == 'desc' %}selected{% endif %}>Exclusions (Most rules first)</option>
+      </select>
+    </div>
+    <div style="font-size: 0.82rem; color: var(--text-muted);">
+      {{ pairs | length }} sync pair{{ 's' if pairs | length != 1 else '' }} &bull; Click column headers to toggle sort
+    </div>
+  </div>
+
   <div class="table-responsive">
     <table class="data-table">
       <thead>
         <tr>
-          <th>Name / ID</th>
-          <th>Source Directory</th>
-          <th>Destination Directory</th>
-          <th>Mode</th>
-          <th>Exclusions</th>
-          <th>Options</th>
-          <th style="text-align: right;">Actions</th>
+          <!-- Name / ID -->
+          <th class="sortable {% if current_sort == 'name' %}sorted-active{% endif %}">
+            <a href="/pairs?sort=name&order={{ 'desc' if current_sort == 'name' and current_order == 'asc' else 'asc' }}" class="sort-header-link" title="Sort by Name">
+              <span>Name / ID</span>
+              <span class="sort-indicator {% if current_sort == 'name' %}active{% endif %}">
+                {% if current_sort == 'name' and current_order == 'desc' %}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                {% elif current_sort == 'name' and current_order == 'asc' %}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+                {% else %}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
+                {% endif %}
+              </span>
+            </a>
+          </th>
+
+          <!-- Source Directory -->
+          <th class="sortable {% if current_sort == 'source' %}sorted-active{% endif %}">
+            <a href="/pairs?sort=source&order={{ 'desc' if current_sort == 'source' and current_order == 'asc' else 'asc' }}" class="sort-header-link" title="Sort by Source Directory">
+              <span>Source Directory</span>
+              <span class="sort-indicator {% if current_sort == 'source' %}active{% endif %}">
+                {% if current_sort == 'source' and current_order == 'desc' %}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                {% elif current_sort == 'source' and current_order == 'asc' %}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+                {% else %}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
+                {% endif %}
+              </span>
+            </a>
+          </th>
+
+          <!-- Destination Directory -->
+          <th class="sortable {% if current_sort == 'destination' %}sorted-active{% endif %}">
+            <a href="/pairs?sort=destination&order={{ 'desc' if current_sort == 'destination' and current_order == 'asc' else 'asc' }}" class="sort-header-link" title="Sort by Destination Directory">
+              <span>Destination Directory</span>
+              <span class="sort-indicator {% if current_sort == 'destination' %}active{% endif %}">
+                {% if current_sort == 'destination' and current_order == 'desc' %}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                {% elif current_sort == 'destination' and current_order == 'asc' %}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+                {% else %}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
+                {% endif %}
+              </span>
+            </a>
+          </th>
+
+          <!-- Mode -->
+          <th class="sortable {% if current_sort == 'mode' %}sorted-active{% endif %}">
+            <a href="/pairs?sort=mode&order={{ 'desc' if current_sort == 'mode' and current_order == 'asc' else 'asc' }}" class="sort-header-link" title="Sort by Mode">
+              <span>Mode</span>
+              <span class="sort-indicator {% if current_sort == 'mode' %}active{% endif %}">
+                {% if current_sort == 'mode' and current_order == 'desc' %}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                {% elif current_sort == 'mode' and current_order == 'asc' %}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+                {% else %}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
+                {% endif %}
+              </span>
+            </a>
+          </th>
+
+          <!-- Exclusions -->
+          <th class="sortable {% if current_sort == 'exclude' %}sorted-active{% endif %}">
+            <a href="/pairs?sort=exclude&order={{ 'desc' if current_sort == 'exclude' and current_order == 'asc' else 'asc' }}" class="sort-header-link" title="Sort by Exclusions">
+              <span>Exclusions</span>
+              <span class="sort-indicator {% if current_sort == 'exclude' %}active{% endif %}">
+                {% if current_sort == 'exclude' and current_order == 'desc' %}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                {% elif current_sort == 'exclude' and current_order == 'asc' %}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+                {% else %}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
+                {% endif %}
+              </span>
+            </a>
+          </th>
+
+          <th style="padding: 14px 16px;">Options</th>
+          <th style="text-align: right; padding: 14px 16px;">Actions</th>
         </tr>
       </thead>
       <tbody>
