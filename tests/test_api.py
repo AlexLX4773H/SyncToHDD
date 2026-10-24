@@ -71,6 +71,12 @@ def test_api_and_web_ui():
         res_static_fav = client.get("/static/favicon.ico")
         assert res_static_fav.status_code == 200
 
+        res_static_32 = client.get("/static/favicon-32x32.png")
+        assert res_static_32.status_code == 200
+
+        res_static_16 = client.get("/static/favicon-16x16.png")
+        assert res_static_16.status_code == 200
+
         res_static_icon = client.get("/static/icon.png")
         assert res_static_icon.status_code == 200
 
