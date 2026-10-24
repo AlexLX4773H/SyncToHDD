@@ -61,6 +61,18 @@ def test_api_and_web_ui():
         res_dash = client.get("/")
         assert res_dash.status_code == 200
         assert "SyncToHDD" in res_dash.text
+        assert 'rel="icon"' in res_dash.text
+
+        # Tab favicon routes
+        res_fav = client.get("/favicon.ico")
+        assert res_fav.status_code == 200
+        assert "image" in res_fav.headers.get("content-type", "")
+
+        res_static_fav = client.get("/static/favicon.ico")
+        assert res_static_fav.status_code == 200
+
+        res_static_icon = client.get("/static/icon.png")
+        assert res_static_icon.status_code == 200
 
         res_pairs = client.get("/pairs")
         assert res_pairs.status_code == 200

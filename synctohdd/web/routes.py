@@ -5,7 +5,7 @@ import humanize
 from typing import Optional
 from fastapi import APIRouter, Request, Depends, Form, HTTPException
 
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +19,16 @@ router = APIRouter(include_in_schema=False)
 
 templates_dir = Path(__file__).parent / "templates"
 templates = Jinja2Templates(directory=str(templates_dir))
+static_dir = Path(__file__).parent / "static"
+
+@router.get("/favicon.ico", include_in_schema=False)
+async def favicon_route():
+    """Serve favicon.ico directly at the root URL."""
+    fav_path = static_dir / "favicon.ico"
+    if fav_path.exists():
+        return FileResponse(str(fav_path), media_type="image/x-icon")
+    icon_path = static_dir / "icon.png"
+    return FileResponse(str(icon_path), media_type="image/png")
 
 def format_bytes(b: int) -> str:
     """Format bytes into readable string."""
