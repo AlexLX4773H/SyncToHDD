@@ -235,6 +235,42 @@ async function deleteRun(runId) {
   }
 }
 
+async function clearAllRuns(pairId = "", status = "") {
+  const isFiltered = Boolean(pairId || status);
+  const confirmMsg = isFiltered
+    ? "Are you sure you want to clear the filtered run history? This action cannot be undone."
+    : "Are you sure you want to clear all sync run history? This action cannot be undone.";
+
+  if (!confirm(confirmMsg)) {
+    return;
+  }
+
+  try {
+    let url = "/api/runs";
+    const params = new URLSearchParams();
+    if (pairId) params.append("pair_id", pairId);
+    if (status) params.append("status", status);
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    const res = await fetch(url, { method: "DELETE" });
+    if (res.ok) {
+      const data = await res.json();
+      showToast(data.message || "Run history cleared", "success");
+      setTimeout(() => {
+        window.location.href = isFiltered ? `/runs?pair=${encodeURIComponent(pairId)}&status=${encodeURIComponent(status)}` : "/runs";
+      }, 500);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || "Failed to clear run history", "danger");
+    }
+  } catch (err) {
+    showToast("Error clearing run history", "danger");
+  }
+}
+
+
 async function testPairPaths(pairId) {
   try {
     showToast("Testing source and destination accessibility...", "info");

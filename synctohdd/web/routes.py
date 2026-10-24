@@ -188,12 +188,17 @@ async def runs_history_view(
     total_pages = math.ceil(total / limit) if total > 0 else 1
     config = load_config()
 
+    overall_total = total
+    if pair or status:
+        _, overall_total = await crud.get_sync_runs(session=db, limit=1)
+
     return templates.TemplateResponse(
         request=request,
         name="runs.html",
         context={
             "runs": runs,
             "total": total,
+            "overall_total": overall_total,
             "page": page,
             "total_pages": total_pages,
             "selected_pair": pair,
@@ -202,6 +207,22 @@ async def runs_history_view(
             "active_tab": "runs",
         },
     )
+
+@router.post("/runs/clear")
+async def runs_clear_web(
+    request: Request,
+    pair: str = Form(""),
+    status: str = Form(""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Web action to clear sync run history via form submission."""
+    await crud.clear_all_sync_runs(
+        session=db,
+        keep_running=True,
+        pair_id=pair if pair else None,
+        status=status if status else None,
+    )
+    return RedirectResponse(url="/runs", status_code=303)
 
 @router.get("/runs/{run_id}", response_class=HTMLResponse)
 async def run_detail_view(

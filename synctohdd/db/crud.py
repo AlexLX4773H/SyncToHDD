@@ -191,7 +191,47 @@ async def get_dashboard_stats(session: AsyncSession) -> Dict[str, Any]:
 
 async def delete_sync_run(session: AsyncSession, run_id: str) -> bool:
     """Delete a sync run and its cascade file changes."""
+    await session.execute(delete(FileChange).where(FileChange.run_id == run_id))
     stmt = delete(SyncRun).where(SyncRun.run_id == run_id)
     result = await session.execute(stmt)
     await session.commit()
-    return result.rowcount > 0
+    return (result.rowcount or 0) > 0
+
+async def clear_all_sync_runs(
+    session: AsyncSession,
+    keep_running: bool = True,
+    pair_id: Optional[str] = None,
+    status: Optional[str] = None,
+) -> int:
+    """Delete all sync runs and cascaded file changes with optional filters."""
+    if not keep_running and not pair_id and not status:
+        # Fast path for complete wipe
+        count_q = select(func.count(SyncRun.run_id))
+        total_count = (await session.execute(count_q)).scalar_one() or 0
+        await session.execute(delete(FileChange))
+        await session.execute(delete(SyncRun))
+        await session.commit()
+        return total_count
+
+    run_select = select(SyncRun.run_id)
+    if keep_running:
+        run_select = run_select.where(SyncRun.status != "running")
+    if pair_id:
+        run_select = run_select.where(SyncRun.sync_pair_id == pair_id)
+    if status:
+        run_select = run_select.where(SyncRun.status == status)
+
+    matching_ids_res = await session.execute(run_select)
+    run_ids = list(matching_ids_res.scalars().all())
+    if not run_ids:
+        return 0
+
+    chunk_size = 500
+    for i in range(0, len(run_ids), chunk_size):
+        chunk = run_ids[i : i + chunk_size]
+        await session.execute(delete(FileChange).where(FileChange.run_id.in_(chunk)))
+        await session.execute(delete(SyncRun).where(SyncRun.run_id.in_(chunk)))
+
+    await session.commit()
+    return len(run_ids)
+

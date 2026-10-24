@@ -134,6 +134,9 @@ python -m synctohdd.main sync manga-cbz-backup
 
 # Sync all configured pairs sequentially
 python -m synctohdd.main sync all
+
+# Clear all sync run history
+python -m synctohdd.main clear-history -y
 ```
 
 ---

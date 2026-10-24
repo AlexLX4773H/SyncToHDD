@@ -6,8 +6,10 @@ from pathlib import Path
 
 from synctohdd.config import load_config
 from synctohdd.db.database import init_db
+from synctohdd.db import crud
 from synctohdd.engine.manager import sync_manager
 from synctohdd.utils.logger import logger, setup_logger
+
 
 def run_server(host: str, port: int, log_level: str = "info"):
     """Launch the FastAPI uvicorn web server."""
@@ -80,6 +82,13 @@ def main():
     # Init-db command
     subparsers.add_parser("init-db", help="Initialize database schema")
 
+    # Clear-history command
+    clear_parser = subparsers.add_parser("clear-history", help="Clear sync run history")
+    clear_parser.add_argument("-y", "--yes", action="store_true", help="Confirm deletion without interactive prompt")
+    clear_parser.add_argument("--pair", default=None, help="Optional sync pair ID to clear")
+    clear_parser.add_argument("--status", default=None, help="Optional status to clear (e.g. completed, failed)")
+    clear_parser.add_argument("--include-running", action="store_true", help="Also clear currently running sync runs")
+
     args = parser.parse_args()
 
     # Default action if no subcommand passed: start server
@@ -97,6 +106,30 @@ def main():
         config = load_config()
         asyncio.run(init_db(config.database.path))
         print("Database initialized successfully.")
+    elif args.command == "clear-history":
+        if not args.yes:
+            prompt_target = f"for pair '{args.pair}'" if args.pair else "ALL"
+            confirm = input(f"Are you sure you want to clear {prompt_target} sync run history? (y/N): ")
+            if confirm.strip().lower() not in ("y", "yes"):
+                print("Aborted.")
+                sys.exit(0)
+        config = load_config()
+
+        async def do_clear():
+            await init_db(config.database.path)
+            from synctohdd.db.database import get_session_factory
+            factory = get_session_factory(config.database.path)
+            async with factory() as session:
+                count = await crud.clear_all_sync_runs(
+                    session=session,
+                    keep_running=not args.include_running,
+                    pair_id=args.pair,
+                    status=args.status,
+                )
+                print(f"Successfully cleared {count} sync run record(s).")
+
+        asyncio.run(do_clear())
+
 
 if __name__ == "__main__":
     main()

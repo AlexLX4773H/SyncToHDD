@@ -403,6 +403,14 @@ a:hover {
   border-radius: var(--radius-sm);
 }
 
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+
 /* Status Badges */
 .badge {
   display: inline-flex;

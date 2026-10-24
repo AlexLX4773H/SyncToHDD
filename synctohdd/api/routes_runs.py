@@ -142,6 +142,27 @@ async def get_run_changes(
         ],
     }
 
+@router.delete("", response_model=Dict[str, Any])
+@router.delete("/clear", response_model=Dict[str, Any])
+@router.post("/clear", response_model=Dict[str, Any])
+async def clear_all_runs(
+    pair_id: Optional[str] = Query(None, description="Optional pair ID filter"),
+    status_filter: Optional[str] = Query(None, alias="status", description="Optional status filter"),
+    keep_running: bool = Query(True, description="Whether to preserve active running sync jobs"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Clear all sync run history and associated file change records."""
+    deleted_count = await crud.clear_all_sync_runs(
+        session=db,
+        keep_running=keep_running,
+        pair_id=pair_id,
+        status=status_filter,
+    )
+    return {
+        "message": f"Successfully cleared {deleted_count} run record(s)",
+        "deleted_count": deleted_count,
+    }
+
 @router.delete("/{run_id}", response_model=Dict[str, Any])
 async def delete_run(run_id: str, db: AsyncSession = Depends(get_db)):
     """Delete a run record and its file changes."""
@@ -149,3 +170,4 @@ async def delete_run(run_id: str, db: AsyncSession = Depends(get_db)):
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Run not found")
     return {"message": f"Run '{run_id}' deleted successfully"}
+
