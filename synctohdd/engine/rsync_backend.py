@@ -69,6 +69,11 @@ class RsyncBackend(BaseSyncBackend):
         cmd = [
             self.rsync_bin,
             "-a",
+            "--no-perms",
+            "--no-owner",
+            "--no-group",
+            "--modify-window=1",
+            "--omit-dir-times",
             "--itemize-changes",
             "--stats",
             "--info=progress2",
@@ -107,6 +112,8 @@ class RsyncBackend(BaseSyncBackend):
         files_added = 0
         files_modified = 0
         files_deleted = 0
+        files_unchanged = 0
+        total_regular_files = 0
         bytes_transferred = 0
         error_output: List[str] = []
 
@@ -122,8 +129,71 @@ class RsyncBackend(BaseSyncBackend):
 
             progress_pattern = re.compile(r"(\d+)%\s+([0-9.]+[kKMGT]?B/s)")
             bytes_pattern = re.compile(r"Total transferred file size:\s+([0-9,]+)")
+            files_pattern = re.compile(r"Number of (?:regular )?files:\s+([0-9,]+)")
+            reg_pattern = re.compile(r"\(reg:\s*([0-9,]+)")
 
-            while proc.poll() is None:
+            def process_line(raw_line: str):
+                nonlocal files_added, files_modified, files_deleted, bytes_transferred, total_regular_files
+                line = raw_line.strip()
+                if not line:
+                    return
+
+                # Parse progress2 output
+                prog_match = progress_pattern.search(line)
+                if prog_match:
+                    pct = float(prog_match.group(1))
+                    speed = prog_match.group(2)
+                    if progress_cb:
+                        progress_cb(
+                            SyncProgressEvent(
+                                run_id=run_id,
+                                pair_id=pair.id,
+                                pair_name=pair.name,
+                                status="syncing",
+                                percent=pct,
+                                files_added=files_added,
+                                files_modified=files_modified,
+                                files_deleted=files_deleted,
+                                message=f"Syncing at {speed} ({pct}%)",
+                            )
+                        )
+                    return
+
+                # Parse itemize-changes output
+                if line.startswith("*deleting"):
+                    rel_p = line.replace("*deleting", "").strip()
+                    files_deleted += 1
+                    changes.append(FileDiff(action="deleted", rel_path=rel_p))
+                elif len(line) > 11 and line[0] in [">", "<", "c", "h", "."]:
+                    update_type = line[0]
+                    item_type = line[1]
+                    code = line[:11]
+                    rel_p = line[12:].strip()
+                    if item_type == "f":  # regular file
+                        # Only files whose content was transferred count as added or modified
+                        if update_type in [">", "<"]:
+                            if "++++++" in code or code.startswith(">f+++++++++") or code.startswith("<f+++++++++"):
+                                files_added += 1
+                                changes.append(FileDiff(action="added", rel_path=rel_p))
+                            else:
+                                files_modified += 1
+                                changes.append(FileDiff(action="modified", rel_path=rel_p))
+                        # Note: update_type == "." means file content was NOT transferred (only attributes/metadata checked)
+
+                # Parse stats output
+                b_match = bytes_pattern.search(line)
+                if b_match:
+                    bytes_transferred = int(b_match.group(1).replace(",", ""))
+
+                reg_match = reg_pattern.search(line)
+                if reg_match:
+                    total_regular_files = int(reg_match.group(1).replace(",", ""))
+                elif not total_regular_files:
+                    f_match = files_pattern.search(line)
+                    if f_match:
+                        total_regular_files = int(f_match.group(1).replace(",", ""))
+
+            while True:
                 if cancel_check and cancel_check():
                     proc.terminate()
                     try:
@@ -139,53 +209,19 @@ class RsyncBackend(BaseSyncBackend):
 
                 line = proc.stdout.readline() if proc.stdout else ""
                 if not line:
+                    if proc.poll() is not None:
+                        break
                     continue
 
-                line = line.strip()
-
-                # Parse progress2 output
-                prog_match = progress_pattern.search(line)
-                if prog_match:
-                    pct = float(prog_match.group(1))
-                    speed = prog_match.group(2)
-                    if progress_cb:
-                        progress_cb(
-                            SyncProgressEvent(
-                                run_id=run_id,
-                                pair_id=pair.id,
-                                pair_name=pair.name,
-                                status="syncing",
-                                percent=pct,
-                                message=f"Syncing at {speed} ({pct}%)",
-                            )
-                        )
-                    continue
-
-                # Parse itemize-changes output
-                if line.startswith("*deleting"):
-                    rel_p = line.replace("*deleting", "").strip()
-                    files_deleted += 1
-                    changes.append(FileDiff(action="deleted", rel_path=rel_p))
-                elif len(line) > 11 and line[0] in [">", "c", "h", "."]:
-                    item_type = line[1]
-                    code = line[:11]
-                    rel_p = line[12:].strip()
-                    if item_type == "f":  # file
-                        if "++++++" in code or code.startswith(">f+++++++++"):
-                            files_added += 1
-                            changes.append(FileDiff(action="added", rel_path=rel_p))
-                        else:
-                            files_modified += 1
-                            changes.append(FileDiff(action="modified", rel_path=rel_p))
+                process_line(line)
 
             # Read remaining output
             rest_stdout, stderr = proc.communicate()
             if rest_stdout:
                 for line in rest_stdout.splitlines():
-                    b_match = bytes_pattern.search(line)
-                    if b_match:
-                        raw = b_match.group(1).replace(",", "")
-                        bytes_transferred = int(raw)
+                    process_line(line)
+
+            files_unchanged = max(0, total_regular_files - files_added - files_modified)
 
             if proc.returncode != 0:
                 err_text = stderr.strip() if stderr else f"rsync exited with code {proc.returncode}"
@@ -195,6 +231,7 @@ class RsyncBackend(BaseSyncBackend):
                     files_added=files_added,
                     files_modified=files_modified,
                     files_deleted=files_deleted,
+                    files_unchanged=files_unchanged,
                     bytes_transferred=bytes_transferred,
                     changes=changes,
                     error_log=err_text,
@@ -218,6 +255,7 @@ class RsyncBackend(BaseSyncBackend):
                     files_added=files_added,
                     files_modified=files_modified,
                     files_deleted=files_deleted,
+                    files_unchanged=files_unchanged,
                     bytes_transferred=bytes_transferred,
                     message=f"Sync completed. +{files_added}, ~{files_modified}, -{files_deleted}",
                 )
@@ -229,6 +267,7 @@ class RsyncBackend(BaseSyncBackend):
             files_added=files_added,
             files_modified=files_modified,
             files_deleted=files_deleted,
+            files_unchanged=files_unchanged,
             bytes_transferred=bytes_transferred,
             changes=changes,
         )
