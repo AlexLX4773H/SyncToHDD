@@ -259,7 +259,13 @@ async function clearAllRuns(pairId = "", status = "") {
       const data = await res.json();
       showToast(data.message || "Run history cleared", "success");
       setTimeout(() => {
-        window.location.href = isFiltered ? `/runs?pair=${encodeURIComponent(pairId)}&status=${encodeURIComponent(status)}` : "/runs";
+        if (window.location.pathname.startsWith("/runs/")) {
+          window.location.href = "/runs";
+        } else if (isFiltered) {
+          window.location.href = `/runs?pair=${encodeURIComponent(pairId)}&status=${encodeURIComponent(status)}`;
+        } else {
+          window.location.reload();
+        }
       }, 500);
     } else {
       const err = await res.json().catch(() => ({}));
