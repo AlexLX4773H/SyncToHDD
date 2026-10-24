@@ -39,8 +39,32 @@ class RsyncBackend(BaseSyncBackend):
         progress_cb: Optional[ProgressCallback] = None,
         cancel_check: Optional[Callable[[], bool]] = None,
     ) -> SyncSummary:
-        src = str(Path(pair.source).resolve()).rstrip("/\\") + "/"
-        dst = str(Path(pair.destination).resolve()).rstrip("/\\") + "/"
+        src_path = Path(pair.source).resolve()
+        dst_path = Path(pair.destination).resolve()
+
+        if not src_path.exists():
+            err_msg = f"Source directory does not exist or is not mounted in container: {src_path}"
+            logger.error(err_msg)
+            return SyncSummary(
+                run_id=run_id,
+                status="failed",
+                error_log=err_msg,
+            )
+
+        if not dry_run:
+            try:
+                dst_path.mkdir(parents=True, exist_ok=True)
+            except Exception as e:
+                err_msg = f"Failed to create destination directory {dst_path}: {e}"
+                logger.error(err_msg)
+                return SyncSummary(
+                    run_id=run_id,
+                    status="failed",
+                    error_log=err_msg,
+                )
+
+        src = str(src_path).rstrip("/\\") + "/"
+        dst = str(dst_path).rstrip("/\\") + "/"
 
         cmd = [
             self.rsync_bin,
