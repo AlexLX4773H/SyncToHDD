@@ -56,19 +56,46 @@ async def dashboard_view(request: Request, db: AsyncSession = Depends(get_db)):
     config = load_config()
     stats = await crud.get_dashboard_stats(db)
 
-    # Get disk space for destination drives of configured pairs
+    # Get disk space for destination drives of configured pairs (1 pill per unique drive)
     disks = {}
     for pair in config.sync_pairs:
         d = get_disk_usage(pair.destination)
-        if d:
-            m_path = d["mount_path"]
-            if m_path not in disks:
-                d["pairs_count"] = 1
-                d["pairs"] = [pair.name]
-                disks[m_path] = d
-            else:
-                disks[m_path]["pairs_count"] += 1
-                disks[m_path]["pairs"].append(pair.name)
+        if not d:
+            continue
+
+        # Match existing drive to ensure only 1 pill per physical/logical drive
+        match_key = None
+        for key, existing_d in disks.items():
+            # 1. Match by device_id (Linux st_dev or Windows drive ID)
+            if d.get("device_id") and d.get("device_id") == existing_d.get("device_id"):
+                match_key = key
+                break
+            # 2. Match by normalized mount path
+            if d.get("mount_path") and existing_d.get("mount_path"):
+                p1 = str(d["mount_path"]).replace("\\", "/").rstrip("/").lower()
+                p2 = str(existing_d["mount_path"]).replace("\\", "/").rstrip("/").lower()
+                if p1 == p2:
+                    match_key = key
+                    break
+            # 3. Match by identical capacity and friendly drive name
+            if (
+                d.get("total_bytes")
+                and d.get("total_bytes") == existing_d.get("total_bytes")
+                and d.get("drive_name")
+                and d.get("drive_name") == existing_d.get("drive_name")
+            ):
+                match_key = key
+                break
+
+        if match_key:
+            disks[match_key]["pairs_count"] += 1
+            if pair.name not in disks[match_key]["pairs"]:
+                disks[match_key]["pairs"].append(pair.name)
+        else:
+            drive_key = d.get("device_id") or str(d.get("mount_path")) or str(len(disks))
+            d["pairs_count"] = 1
+            d["pairs"] = [pair.name]
+            disks[drive_key] = d
 
     sorted_pairs = sort_sync_pairs(config.sync_pairs, sort_by="name", order="asc")
 

@@ -57,11 +57,27 @@ def get_mount_point(path: Path) -> Path:
 
     curr = resolved
     try:
-        while not os.path.ismount(str(curr)) and curr.parent != curr:
+        curr_dev = curr.stat().st_dev
+        while curr.parent != curr:
+            if os.path.ismount(str(curr)):
+                return curr
+            try:
+                if curr.parent.stat().st_dev != curr_dev:
+                    return curr
+            except Exception:
+                pass
             curr = curr.parent
+        return curr
     except Exception:
         pass
-    return curr
+
+    try:
+        curr = resolved
+        while not os.path.ismount(str(curr)) and curr.parent != curr:
+            curr = curr.parent
+        return curr
+    except Exception:
+        return path
 
 def get_drive_name(mount_point: Path) -> str:
     """Return a human-friendly name or label for a mount point."""
@@ -100,6 +116,22 @@ def get_disk_usage(path_str: str) -> Optional[Dict[str, Any]]:
         mount_point = get_mount_point(check_path)
         drive_name = get_drive_name(mount_point)
 
+        # Unique device ID for physical/logical filesystem deduplication
+        device_id = None
+        try:
+            st = check_path.stat()
+            device_id = f"dev_{st.st_dev}"
+        except Exception:
+            pass
+
+        if not device_id and is_windows():
+            drive_letter = getattr(mount_point, "drive", "")
+            if drive_letter:
+                device_id = f"win_{drive_letter.upper()}"
+
+        if not device_id:
+            device_id = str(mount_point).replace("\\", "/").rstrip("/").lower()
+
         return {
             "total_bytes": total,
             "used_bytes": used,
@@ -107,8 +139,10 @@ def get_disk_usage(path_str: str) -> Optional[Dict[str, Any]]:
             "percent_used": round(percent, 1),
             "mount_path": str(mount_point),
             "drive_name": drive_name,
+            "device_id": device_id,
             "target_path": str(check_path),
         }
     except Exception:
         return None
+
 
