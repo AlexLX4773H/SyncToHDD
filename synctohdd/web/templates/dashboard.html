@@ -90,20 +90,48 @@
       </svg>
       Destination Storage Drives
     </h2>
+    <span style="font-size: 0.82rem; color: var(--text-secondary);">
+      {{ disks | length }} active drive{{ 's' if disks | length != 1 else '' }}
+    </span>
   </div>
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+  <div class="storage-drives-grid">
     {% for d in disks %}
-    <div style="background: rgba(15, 23, 42, 0.5); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-      <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-        <span style="font-weight: 600; color: #fff;">{{ d.mount_path }}</span>
-        <span style="color: var(--text-secondary); font-size: 0.85rem;">{{ d.free_bytes | format_bytes }} Free</span>
+    <div class="storage-drive-card">
+      <div class="storage-drive-header">
+        <div class="storage-drive-info">
+          <div class="storage-drive-name-row">
+            <svg class="storage-drive-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+              <line x1="6" y1="6" x2="6.01" y2="6"/>
+              <line x1="6" y1="18" x2="6.01" y2="18"/>
+            </svg>
+            <span class="storage-drive-name" title="{{ d.drive_name or d.mount_path }}">{{ d.drive_name or d.mount_path }}</span>
+            {% if d.pairs_count %}
+            <span class="badge" style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.25); font-size: 0.72rem; padding: 1px 7px; flex-shrink: 0;" title="{{ d.pairs | join(', ') if d.pairs else '' }}">
+              {{ d.pairs_count }} pair{{ 's' if d.pairs_count != 1 else '' }}
+            </span>
+            {% endif %}
+          </div>
+          <div class="storage-drive-path" title="{{ d.mount_path }}">
+            {{ d.mount_path }}
+          </div>
+        </div>
+        <div class="storage-drive-free-badge">
+          <span class="storage-drive-free-val">{{ d.free_bytes | format_bytes }}</span>
+          <span class="storage-drive-free-lbl">Free</span>
+        </div>
       </div>
-      <div class="disk-bar-bg">
+      <div class="disk-bar-bg" style="margin-top: 12px;">
         <div class="disk-bar-fill {% if d.percent_used > 85 %}danger{% elif d.percent_used > 70 %}warn{% endif %}" style="width: {{ d.percent_used }}%;"></div>
       </div>
-      <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 0.8rem; color: var(--text-muted);">
-        <span>{{ d.used_bytes | format_bytes }} used of {{ d.total_bytes | format_bytes }}</span>
-        <span>{{ d.percent_used }}%</span>
+      <div class="storage-drive-footer">
+        <span class="storage-drive-usage-text">
+          <strong style="color: #cbd5e1;">{{ d.used_bytes | format_bytes }}</strong> used of {{ d.total_bytes | format_bytes }}
+        </span>
+        <span class="storage-drive-percent {% if d.percent_used > 85 %}danger{% elif d.percent_used > 70 %}warn{% endif %}">
+          {{ d.percent_used }}%
+        </span>
       </div>
     </div>
     {% endfor %}
@@ -125,19 +153,19 @@
 
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
     {% for pair in pairs %}
-    <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px;">
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-        <div>
-          <h3 style="font-size: 1rem; font-weight: 600; color: #fff;">{{ pair.name }}</h3>
+    <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px; min-width: 0; overflow: hidden;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 8px;">
+        <div style="min-width: 0;">
+          <h3 style="font-size: 1rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ pair.name }}">{{ pair.name }}</h3>
           <span class="badge badge-mode" style="margin-top: 4px;">{{ pair.mode }}</span>
           {% if pair.checksum %}
           <span class="badge" style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border: 1px solid rgba(99, 102, 241, 0.2);">SHA-256</span>
           {% endif %}
         </div>
       </div>
-      <div style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 16px;">
-        <div style="margin-bottom: 4px;"><strong>From:</strong> <span style="font-family: var(--font-mono); color: #cbd5e1;">{{ pair.source }}</span></div>
-        <div><strong>To:</strong> <span style="font-family: var(--font-mono); color: #cbd5e1;">{{ pair.destination }}</span></div>
+      <div style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 16px; word-break: break-all;">
+        <div style="margin-bottom: 4px;"><strong>From:</strong> <span style="font-family: var(--font-mono); color: #cbd5e1; word-break: break-all;">{{ pair.source }}</span></div>
+        <div><strong>To:</strong> <span style="font-family: var(--font-mono); color: #cbd5e1; word-break: break-all;">{{ pair.destination }}</span></div>
       </div>
       <div style="display: flex; gap: 8px;">
         <button class="btn btn-primary btn-sm" style="flex: 1;" onclick="triggerSync('{{ pair.id }}', false)">

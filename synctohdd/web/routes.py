@@ -60,8 +60,15 @@ async def dashboard_view(request: Request, db: AsyncSession = Depends(get_db)):
     disks = {}
     for pair in config.sync_pairs:
         d = get_disk_usage(pair.destination)
-        if d and d["mount_path"] not in disks:
-            disks[d["mount_path"]] = d
+        if d:
+            m_path = d["mount_path"]
+            if m_path not in disks:
+                d["pairs_count"] = 1
+                d["pairs"] = [pair.name]
+                disks[m_path] = d
+            else:
+                disks[m_path]["pairs_count"] += 1
+                disks[m_path]["pairs"].append(pair.name)
 
     sorted_pairs = sort_sync_pairs(config.sync_pairs, sort_by="name", order="asc")
 
