@@ -64,8 +64,14 @@ function updateGlobalStatus(data) {
   const dot = document.getElementById("global-status-dot");
   const text = document.getElementById("global-status-text");
   const mobileDot = document.getElementById("mobile-status-dot");
+  const cancelBtn = document.getElementById("btn-cancel-sync");
 
-  const isRunning = data.is_running;
+  const isRunning = Boolean(data.is_running);
+  window.__isSyncRunning = isRunning;
+
+  if (cancelBtn) {
+    cancelBtn.style.display = isRunning ? "inline-flex" : "none";
+  }
 
   if (dot) {
     if (isRunning) {
@@ -205,6 +211,11 @@ async function triggerSyncAll(dryRun = false) {
 }
 
 async function cancelActiveSync() {
+  if (window.__isSyncRunning === false) {
+    showToast("No active sync is currently running to cancel", "info");
+    return;
+  }
+
   if (!confirm("Are you sure you want to cancel the currently active sync run?")) {
     return;
   }
@@ -213,8 +224,11 @@ async function cancelActiveSync() {
     const res = await fetch("/api/sync/active", { method: "DELETE" });
     if (res.ok) {
       showToast("Cancellation requested", "warning");
+      window.__isSyncRunning = false;
+      const cancelBtn = document.getElementById("btn-cancel-sync");
+      if (cancelBtn) cancelBtn.style.display = "none";
     } else {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({}));
       showToast(err.detail || "Failed to cancel sync", "danger");
     }
   } catch (err) {

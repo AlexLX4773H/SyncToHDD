@@ -102,7 +102,6 @@ a:hover {
   display: flex;
   min-height: 100vh;
   position: relative;
-  z-index: 1;
 }
 
 /* Mobile Sidebar Backdrop Overlay */
@@ -112,7 +111,7 @@ a:hover {
   background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  z-index: 998;
+  z-index: 1050;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -1273,7 +1272,8 @@ a:hover {
     width: 280px;
     max-width: 82vw;
     height: 100%;
-    z-index: 1000;
+    z-index: 1100;
+    background: #0f172a;
     transform: translateX(-100%);
     transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.7);
@@ -1332,6 +1332,11 @@ a:hover {
     gap: 8px;
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .topbar-actions:empty,
+  .topbar-actions:has(#btn-cancel-sync[style*="display: none"]:only-child) {
+    display: none;
   }
 
   .topbar-actions .btn {

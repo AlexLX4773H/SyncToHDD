@@ -4,7 +4,7 @@
 {% block header_title %}Active Sync Monitor{% endblock %}
 
 {% block header_actions %}
-  <button class="btn btn-danger" id="btn-cancel-sync" onclick="cancelActiveSync()">
+  <button class="btn btn-danger" id="btn-cancel-sync" onclick="cancelActiveSync()" style="display: {% if sync_status.is_running %}inline-flex{% else %}none{% endif %};">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <circle cx="12" cy="12" r="10"/>
       <line x1="15" y1="9" x2="9" y2="15"/>
@@ -112,4 +112,8 @@
   </div>
 </div>
 {% endif %}
+
+<script>
+  window.__isSyncRunning = {{ 'true' if sync_status.is_running else 'false' }};
+</script>
 {% endblock %}
