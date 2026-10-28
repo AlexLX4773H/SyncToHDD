@@ -228,6 +228,23 @@ def test_api_and_web_ui():
             client.delete("/api/pairs/sync-all-test-pair")
             client.delete("/api/runs?keep_running=false")
 
+        # 8. Test format_duration Jinja filter
+        from datetime import datetime, timedelta, timezone
+        from synctohdd.web.routes import format_duration
+
+        t0 = datetime(2026, 10, 24, 12, 0, 0)
+        assert format_duration(None, t0) == "-"
+        assert format_duration(t0, None) == "-"
+        assert format_duration(t0, t0 - timedelta(seconds=10)) == "0s"
+        assert format_duration(t0, t0 + timedelta(seconds=8)) == "8s"
+        assert format_duration(t0, t0 + timedelta(minutes=14, seconds=15)) == "14m 15s"
+        assert format_duration(t0, t0 + timedelta(minutes=116, seconds=33)) == "1h 56m 33s"
+        assert format_duration(t0, t0 + timedelta(minutes=5546, seconds=48)) == "3d 20h 26m 48s"
+        assert format_duration(t0, t0 + timedelta(days=1, seconds=5)) == "1d 0h 0m 5s"
+        # Test tz-aware vs naive compatibility
+        t_aware = datetime(2026, 10, 24, 12, 0, 0, tzinfo=timezone.utc)
+        assert format_duration(t_aware, t0 + timedelta(hours=2)) == "2h 0m 0s"
+
         print("All API & Web UI integration tests passed successfully!")
 
 if __name__ == "__main__":

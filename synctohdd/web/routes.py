@@ -37,15 +37,33 @@ def format_bytes(b: int) -> str:
     return humanize.naturalsize(b, binary=True)
 
 def format_duration(start: datetime, end: datetime) -> str:
-    """Calculate and format run duration in seconds / minutes."""
+    """Calculate and format run duration in days, hours, minutes, and seconds."""
     if not start or not end:
         return "-"
-    seconds = int((end - start).total_seconds())
-    if seconds < 60:
-        return f"{seconds}s"
-    minutes = seconds // 60
-    rem_secs = seconds % 60
-    return f"{minutes}m {rem_secs}s"
+    try:
+        total_seconds = int((end - start).total_seconds())
+    except TypeError:
+        s = start.replace(tzinfo=None) if start.tzinfo else start
+        e = end.replace(tzinfo=None) if end.tzinfo else end
+        total_seconds = int((e - s).total_seconds())
+
+    if total_seconds < 0:
+        return "0s"
+    if total_seconds < 60:
+        return f"{total_seconds}s"
+
+    days = total_seconds // 86400
+    rem = total_seconds % 86400
+    hours = rem // 3600
+    rem %= 3600
+    minutes = rem // 60
+    seconds = rem % 60
+
+    if days > 0:
+        return f"{days}d {hours}h {minutes}m {seconds}s"
+    if hours > 0:
+        return f"{hours}h {minutes}m {seconds}s"
+    return f"{minutes}m {seconds}s"
 
 templates.env.filters["format_bytes"] = format_bytes
 templates.env.filters["format_duration"] = format_duration
