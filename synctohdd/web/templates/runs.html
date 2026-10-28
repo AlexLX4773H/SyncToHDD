@@ -4,8 +4,8 @@
 {% block header_title %}Sync Run History{% endblock %}
 
 {% block header_actions %}
-  <div style="display: flex; align-items: center; gap: 14px;">
-    <span style="font-size: 0.9rem; color: var(--text-secondary);">Total Runs: <strong>{{ total }}</strong></span>
+  <div class="runs-header-actions">
+    <span class="runs-total-badge">Total Runs: <strong>{{ total }}</strong></span>
     {% if overall_total > 0 or total > 0 %}
     <button type="button" class="btn btn-danger btn-sm" onclick="openClearModal('', '')" id="btn-clear-all-history" title="Clear all sync run history">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -22,11 +22,11 @@
 
 {% block content %}
 <!-- Filters Bar -->
-<div class="card" style="margin-bottom: 24px; padding: 16px 24px;">
-  <form method="GET" action="/runs" style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
-    <div style="display: flex; align-items: center; gap: 8px;">
+<div class="card runs-filter-card">
+  <form method="GET" action="/runs" class="runs-filter-form">
+    <div class="filter-item">
       <label class="form-label" style="margin-bottom: 0;">Pair:</label>
-      <select name="pair" class="form-select" style="width: 220px;" onchange="this.form.submit()">
+      <select name="pair" class="form-select filter-select" onchange="this.form.submit()">
         <option value="">All Sync Pairs</option>
         {% for p in pairs %}
         <option value="{{ p.id }}" {% if selected_pair == p.id %}selected{% endif %}>{{ p.name }}</option>
@@ -34,9 +34,9 @@
       </select>
     </div>
 
-    <div style="display: flex; align-items: center; gap: 8px;">
+    <div class="filter-item">
       <label class="form-label" style="margin-bottom: 0;">Status:</label>
-      <select name="status" class="form-select" style="width: 160px;" onchange="this.form.submit()">
+      <select name="status" class="form-select filter-select" onchange="this.form.submit()">
         <option value="">All Statuses</option>
         <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>Completed</option>
         <option value="failed" {% if selected_status == 'failed' %}selected{% endif %}>Failed</option>
@@ -46,17 +46,18 @@
     </div>
 
     {% if selected_pair or selected_status %}
-    <a href="/runs" class="btn btn-secondary btn-sm">Clear Filters</a>
-    {% if total > 0 %}
-    <button type="button" class="btn btn-danger btn-sm" style="margin-left: auto;" onclick="openClearModal('{{ selected_pair }}', '{{ selected_status }}')" title="Clear only runs matching current filter">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="3 6 5 6 21 6"></polyline>
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-      </svg>
-      Clear Filtered Runs ({{ total }})
-    </button>
-    {% endif %}
-
+    <div class="filter-actions">
+      <a href="/runs" class="btn btn-secondary btn-sm">Clear Filters</a>
+      {% if total > 0 %}
+      <button type="button" class="btn btn-danger btn-sm" onclick="openClearModal('{{ selected_pair }}', '{{ selected_status }}')" title="Clear only runs matching current filter">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        Clear Filtered Runs ({{ total }})
+      </button>
+      {% endif %}
+    </div>
     {% endif %}
   </form>
 </div>
@@ -127,7 +128,7 @@
 
   <!-- Pagination -->
   {% if total_pages > 1 %}
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-subtle); flex-wrap: wrap; gap: 12px;">
     <div style="color: var(--text-muted); font-size: 0.85rem;">
       Page {{ page }} of {{ total_pages }} ({{ total }} total runs)
     </div>

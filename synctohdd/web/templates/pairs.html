@@ -29,9 +29,9 @@
 {% block content %}
 <div class="card">
   <!-- Sort & Controls Toolbar -->
-  <div style="display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border-subtle); flex-wrap: wrap; gap: 12px; background: rgba(15, 23, 42, 0.4);">
-    <div style="display: flex; align-items: center; gap: 10px;">
-      <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; display: flex; align-items: center; gap: 6px;">
+  <div class="pairs-toolbar">
+    <div class="pairs-sort-wrap">
+      <span class="pairs-sort-label">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="21" y1="10" x2="7" y2="10"></line>
           <line x1="21" y1="6" x2="3" y2="6"></line>
@@ -40,7 +40,7 @@
         </svg>
         Sort By:
       </span>
-      <select class="form-select" style="width: auto; padding: 6px 32px 6px 12px; font-size: 0.85rem;" onchange="location.href=this.value">
+      <select class="form-select pairs-sort-select" onchange="location.href=this.value">
         <option value="/pairs?sort=name&order=asc" {% if current_sort == 'name' and current_order == 'asc' %}selected{% endif %}>Name (A &rarr; Z) [Default]</option>
         <option value="/pairs?sort=name&order=desc" {% if current_sort == 'name' and current_order == 'desc' %}selected{% endif %}>Name (Z &rarr; A)</option>
         <option value="/pairs?sort=source&order=asc" {% if current_sort == 'source' and current_order == 'asc' %}selected{% endif %}>Source Directory (A &rarr; Z)</option>
@@ -51,7 +51,7 @@
         <option value="/pairs?sort=exclude&order=desc" {% if current_sort == 'exclude' and current_order == 'desc' %}selected{% endif %}>Exclusions (Most rules first)</option>
       </select>
     </div>
-    <div style="font-size: 0.82rem; color: var(--text-muted);">
+    <div class="pairs-count-hint">
       {{ pairs | length }} sync pair{{ 's' if pairs | length != 1 else '' }} &bull; Click column headers to toggle sort
     </div>
   </div>

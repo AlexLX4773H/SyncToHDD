@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#090d16">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>{% block title %}SyncToHDD{% endblock %} — Server Backup Dashboard</title>
   <meta name="description" content="Self-hosted file & directory synchronization tool with Web UI and run history for Linux & Windows.">
   <!-- Tab Favicons -->
@@ -15,18 +18,29 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css?v=0.1.3">
-  <script src="/static/js/app.js?v=0.1.2" defer></script>
+  <link rel="stylesheet" href="/static/css/style.css?v=0.2.0">
+  <script src="/static/js/app.js?v=0.2.0" defer></script>
 
 </head>
 <body>
+  <!-- Mobile Sidebar Backdrop Overlay -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
+
   <div class="app-container">
-    <!-- Sidebar Navigation -->
+    <!-- Sidebar Navigation / Mobile Drawer -->
     <aside class="sidebar" id="sidebar-nav">
       <div class="brand">
         <img class="brand-icon" src="/static/icon.png?v=2" alt="SyncToHDD" width="38" height="38" loading="eager">
-        <span class="brand-title">SyncToHDD</span>
-        <span class="brand-badge">v0.1</span>
+        <div class="brand-text-wrap">
+          <span class="brand-title">SyncToHDD</span>
+          <span class="brand-badge">v0.1</span>
+        </div>
+        <button type="button" class="sidebar-close-btn" id="sidebar-close-btn" onclick="toggleSidebar(false)" aria-label="Close navigation menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
 
       <ul class="nav-menu">
@@ -82,6 +96,16 @@
     <div class="main-wrapper">
       <header class="topbar">
         <div class="page-title-wrap">
+          <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleSidebar(true)" aria-label="Open navigation menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div class="mobile-brand-inline">
+            <img class="brand-icon-sm" src="/static/icon.png?v=2" alt="SyncToHDD" width="28" height="28">
+          </div>
           <h1 class="page-title">{% block header_title %}Dashboard{% endblock %}</h1>
         </div>
         <div class="topbar-actions">
@@ -94,5 +118,42 @@
       </main>
     </div>
   </div>
+
+  <!-- Mobile Bottom Navigation Bar (Phone thumb-friendly) -->
+  <nav class="mobile-bottom-nav" aria-label="Mobile Navigation">
+    <a href="/" class="mobile-nav-item {% if active_tab == 'dashboard' %}active{% endif %}" id="mobile-nav-dashboard">
+      <svg class="mobile-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <rect x="3" y="3" width="7" height="9" rx="1"/>
+        <rect x="14" y="3" width="7" height="5" rx="1"/>
+        <rect x="14" y="12" width="7" height="9" rx="1"/>
+        <rect x="3" y="16" width="7" height="5" rx="1"/>
+      </svg>
+      <span class="mobile-nav-label">Dashboard</span>
+    </a>
+    <a href="/pairs" class="mobile-nav-item {% if active_tab == 'pairs' %}active{% endif %}" id="mobile-nav-pairs">
+      <svg class="mobile-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        <line x1="12" y1="11" x2="12" y2="17"/>
+        <line x1="9" y1="14" x2="15" y2="14"/>
+      </svg>
+      <span class="mobile-nav-label">Pairs</span>
+    </a>
+    <a href="/active" class="mobile-nav-item {% if active_tab == 'active' %}active{% endif %}" id="mobile-nav-active">
+      <div class="mobile-nav-icon-wrap">
+        <svg class="mobile-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+        <span class="mobile-nav-pulse-dot" id="mobile-status-dot"></span>
+      </div>
+      <span class="mobile-nav-label">Active</span>
+    </a>
+    <a href="/runs" class="mobile-nav-item {% if active_tab == 'runs' %}active{% endif %}" id="mobile-nav-runs">
+      <svg class="mobile-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+      <span class="mobile-nav-label">History</span>
+    </a>
+  </nav>
 </body>
 </html>

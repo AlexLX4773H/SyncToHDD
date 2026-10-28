@@ -16,16 +16,16 @@
 
 {% block content %}
 <div class="card" style="margin-bottom: 24px;">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+  <div class="active-run-header">
     <div>
       <span class="badge badge-{{ sync_status.latest_event.status if sync_status.latest_event else 'completed' }}" id="active-run-status-badge">
         {{ sync_status.latest_event.status if sync_status.latest_event else ('syncing' if sync_status.is_running else 'idle') }}
       </span>
-      <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-top: 6px;" id="active-run-title">
+      <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-top: 6px; word-break: break-word;" id="active-run-title">
         {{ sync_status.active_pair_name if sync_status.active_pair_name else 'No Sync Currently Running' }}
       </h2>
     </div>
-    <div style="text-align: right;">
+    <div class="active-run-stat">
       <span style="font-size: 1.8rem; font-weight: 700; color: var(--accent-primary);" id="active-progress-percent">
         {{ sync_status.latest_event.percent if sync_status.latest_event else 0.0 }}%
       </span>
@@ -38,7 +38,7 @@
     <div class="progress-bar" id="active-progress-bar" style="width: {{ sync_status.latest_event.percent if sync_status.latest_event else 0 }}%;"></div>
   </div>
 
-  <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 20px;">
+  <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 20px; word-break: break-all;">
     <strong>Current item:</strong>
     <span id="live-current-file" style="font-family: var(--font-mono); color: #cbd5e1;">
       {{ sync_status.latest_event.current_file if sync_status.latest_event and sync_status.latest_event.current_file else 'Waiting for activity...' }}
@@ -46,7 +46,7 @@
   </div>
 
   <!-- Live Counter Grid -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px;">
+  <div class="counters-grid" style="margin-bottom: 12px;">
     <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-md); padding: 12px 16px;">
       <div style="font-size: 0.8rem; color: #6ee7b7;">Files Added</div>
       <div style="font-size: 1.4rem; font-weight: 700; color: #10b981;" id="live-added-count">

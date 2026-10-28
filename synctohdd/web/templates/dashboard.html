@@ -151,9 +151,9 @@
     <a href="/pairs" class="btn btn-secondary btn-sm">Manage Pairs &rarr;</a>
   </div>
 
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+  <div class="pairs-grid">
     {% for pair in pairs %}
-    <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px; min-width: 0; overflow: hidden;">
+    <div class="pair-overview-card">
       <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 8px;">
         <div style="min-width: 0;">
           <h3 style="font-size: 1rem; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ pair.name }}">{{ pair.name }}</h3>
@@ -167,7 +167,7 @@
         <div style="margin-bottom: 4px;"><strong>From:</strong> <span style="font-family: var(--font-mono); color: #cbd5e1; word-break: break-all;">{{ pair.source }}</span></div>
         <div><strong>To:</strong> <span style="font-family: var(--font-mono); color: #cbd5e1; word-break: break-all;">{{ pair.destination }}</span></div>
       </div>
-      <div style="display: flex; gap: 8px;">
+      <div class="pair-card-actions">
         <button class="btn btn-primary btn-sm" style="flex: 1;" onclick="triggerSync('{{ pair.id }}', false)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="5 3 19 12 5 21 5 3"/>
@@ -185,7 +185,7 @@
 
 <!-- Recent Runs Table -->
 <div class="card">
-  <div class="card-header">
+  <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
     <h2 class="card-title">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="10"/>
@@ -193,7 +193,7 @@
       </svg>
       Recent Sync Runs
     </h2>
-    <div style="display: flex; align-items: center; gap: 8px;">
+    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
       {% if stats.total_runs > 0 %}
       <button type="button" class="btn btn-danger btn-sm" onclick="clearAllRuns()" title="Clear all sync run history">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

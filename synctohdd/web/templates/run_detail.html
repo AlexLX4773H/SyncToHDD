@@ -11,26 +11,26 @@
 {% block content %}
 <!-- Run Overview Card -->
 <div class="card" style="margin-bottom: 24px;">
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+  <div class="run-header-wrap">
     <div>
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap;">
         <span class="badge badge-{{ run.status }}">{{ run.status }}</span>
         {% if run.dry_run %}
         <span class="badge badge-mode">Dry Run</span>
         {% endif %}
-        <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">{{ run.run_id }}</span>
+        <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted); word-break: break-all;">{{ run.run_id }}</span>
       </div>
-      <h2 style="font-size: 1.35rem; font-weight: 700; color: #fff;">{{ run.sync_pair_name }}</h2>
+      <h2 style="font-size: 1.35rem; font-weight: 700; color: #fff; word-break: break-word;">{{ run.sync_pair_name }}</h2>
     </div>
-    <div style="text-align: right;">
-      <div style="font-size: 1.4rem; font-weight: 700; color: #fff; font-family: var(--font-mono);">
+    <div class="run-header-stat">
+      <div class="run-header-stat-val">
         {{ run.bytes_transferred | format_bytes }}
       </div>
-      <div style="font-size: 0.8rem; color: var(--text-muted);">Total Data Moved</div>
+      <div class="run-header-stat-lbl">Total Data Moved</div>
     </div>
   </div>
 
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; padding: 16px; background: rgba(15, 23, 42, 0.4); border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+  <div class="run-meta-grid">
     <div>
       <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Started At</div>
       <div style="color: #fff; font-size: 0.9rem; margin-top: 2px;">{{ run.started_at.strftime('%Y-%m-%d %H:%M:%S') if run.started_at else '-' }}</div>
@@ -45,25 +45,25 @@
     </div>
     <div>
       <div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Pair ID</div>
-      <div style="color: #fff; font-size: 0.9rem; font-family: var(--font-mono); margin-top: 2px;">{{ run.sync_pair_id }}</div>
+      <div style="color: #fff; font-size: 0.9rem; font-family: var(--font-mono); margin-top: 2px; word-break: break-all;">{{ run.sync_pair_id }}</div>
     </div>
   </div>
 
-  <div style="margin-top: 16px; font-size: 0.85rem; color: var(--text-secondary);">
-    <div style="margin-bottom: 4px;"><strong>Source:</strong> <span style="font-family: var(--font-mono); color: #cbd5e1;">{{ run.source }}</span></div>
-    <div><strong>Destination:</strong> <span style="font-family: var(--font-mono); color: #cbd5e1;">{{ run.destination }}</span></div>
+  <div style="margin-top: 16px; font-size: 0.85rem; color: var(--text-secondary); word-break: break-all;">
+    <div style="margin-bottom: 4px;"><strong>Source:</strong> <span style="font-family: var(--font-mono); color: #cbd5e1; word-break: break-all;">{{ run.source }}</span></div>
+    <div><strong>Destination:</strong> <span style="font-family: var(--font-mono); color: #cbd5e1; word-break: break-all;">{{ run.destination }}</span></div>
   </div>
 
   {% if run.error_log %}
   <div style="margin-top: 16px; padding: 14px 18px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); color: #fca5a5; font-family: var(--font-mono); font-size: 0.85rem;">
     <strong>Error Log:</strong>
-    <pre style="margin-top: 6px; white-space: pre-wrap;">{{ run.error_log }}</pre>
+    <pre style="margin-top: 6px; white-space: pre-wrap; word-break: break-all;">{{ run.error_log }}</pre>
   </div>
   {% endif %}
 </div>
 
 <!-- Change Counters -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
+<div class="counters-grid">
   <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-md); padding: 14px 18px;">
     <div style="font-size: 0.8rem; color: #6ee7b7;">Added Files</div>
     <div style="font-size: 1.6rem; font-weight: 700; color: #10b981;">{{ run.files_added }}</div>
@@ -84,7 +84,7 @@
 
 <!-- File Changes Log Card -->
 <div class="card">
-  <div class="card-header" style="flex-wrap: wrap; gap: 16px;">
+  <div class="card-header" style="flex-wrap: wrap; gap: 14px;">
     <h3 class="card-title">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -97,9 +97,9 @@
     </h3>
 
     <!-- Search form -->
-    <form method="GET" action="/runs/{{ run.run_id }}" style="display: flex; gap: 8px;">
+    <form method="GET" action="/runs/{{ run.run_id }}" class="search-filter-form">
       <input type="hidden" name="action" value="{{ selected_action }}">
-      <input type="text" name="search" class="form-input" placeholder="Search file path..." value="{{ search_query }}" style="padding: 6px 12px; width: 240px; font-size: 0.85rem;">
+      <input type="text" name="search" class="form-input" placeholder="Search file path..." value="{{ search_query }}">
       <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
       {% if search_query %}
       <a href="/runs/{{ run.run_id }}?action={{ selected_action }}" class="btn btn-secondary btn-sm">Clear</a>
@@ -185,7 +185,7 @@
 
   <!-- Pagination -->
   {% if total_pages > 1 %}
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-subtle); flex-wrap: wrap; gap: 12px;">
     <div style="color: var(--text-muted); font-size: 0.85rem;">
       Page {{ page }} of {{ total_pages }} ({{ total }} changes)
     </div>

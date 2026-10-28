@@ -42,7 +42,7 @@
       <div class="form-help">Target directory on your external USB3 HDD or storage drive.</div>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div class="form-row-2col">
       <div class="form-group">
         <label class="form-label" for="select-mode">Sync Mode</label>
         <select id="select-mode" name="mode" class="form-select">
@@ -75,7 +75,7 @@
       </div>
     </div>
 
-    <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; border-top: 1px solid var(--border-subtle); padding-top: 20px;">
+    <div class="form-actions">
       <a href="/pairs" class="btn btn-secondary">Cancel</a>
       {% if not is_new and not is_duplicate %}
       <a href="/pairs/{{ pair.id }}/duplicate" class="btn btn-secondary" title="Create a duplicate of this pair">

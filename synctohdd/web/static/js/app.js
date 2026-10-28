@@ -63,16 +63,33 @@ function initSSE() {
 function updateGlobalStatus(data) {
   const dot = document.getElementById("global-status-dot");
   const text = document.getElementById("global-status-text");
+  const mobileDot = document.getElementById("mobile-status-dot");
 
-  if (!dot || !text) return;
+  const isRunning = data.is_running;
 
-  if (data.is_running) {
-    dot.className = "pulse-dot syncing";
-    const pairName = data.latest_event ? data.latest_event.pair_name : "Active";
-    text.textContent = `Syncing: ${pairName}`;
-  } else {
-    dot.className = "pulse-dot";
-    text.textContent = "Engine Idle";
+  if (dot) {
+    if (isRunning) {
+      dot.className = "pulse-dot syncing";
+    } else {
+      dot.className = "pulse-dot";
+    }
+  }
+
+  if (text) {
+    if (isRunning) {
+      const pairName = data.latest_event ? data.latest_event.pair_name : "Active";
+      text.textContent = `Syncing: ${pairName}`;
+    } else {
+      text.textContent = "Engine Idle";
+    }
+  }
+
+  if (mobileDot) {
+    if (isRunning) {
+      mobileDot.classList.add("syncing");
+    } else {
+      mobileDot.classList.remove("syncing");
+    }
   }
 }
 
@@ -325,7 +342,45 @@ async function testPairPaths(pairId) {
   }
 }
 
-// Auto-initialize SSE on page load
+// Mobile Navigation Drawer Toggle
+function toggleSidebar(forceState) {
+  const sidebar = document.getElementById("sidebar-nav");
+  const backdrop = document.getElementById("sidebar-backdrop");
+  if (!sidebar) return;
+
+  const willOpen = typeof forceState === "boolean" 
+    ? forceState 
+    : !sidebar.classList.contains("open");
+
+  if (willOpen) {
+    sidebar.classList.add("open");
+    if (backdrop) backdrop.classList.add("open");
+    document.body.classList.add("sidebar-open");
+  } else {
+    sidebar.classList.remove("open");
+    if (backdrop) backdrop.classList.remove("open");
+    document.body.classList.remove("sidebar-open");
+  }
+}
+
+window.toggleSidebar = toggleSidebar;
+
+// Auto-initialize SSE and listeners on page load
 document.addEventListener("DOMContentLoaded", () => {
   initSSE();
+
+  // Close sidebar when pressing ESC
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      toggleSidebar(false);
+    }
+  });
+
+  // Close sidebar on resize to desktop width
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 768) {
+      toggleSidebar(false);
+    }
+  });
 });
+
