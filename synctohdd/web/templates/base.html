@@ -155,5 +155,40 @@
       <span class="mobile-nav-label">History</span>
     </a>
   </nav>
+
+  <!-- Global Queue Confirmation Modal -->
+  <div class="modal-overlay" id="queue-confirm-modal" onclick="if(event.target===this)closeQueueModal()">
+    <div class="modal-card">
+      <h3 class="modal-title">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2">
+          <line x1="8" y1="6" x2="21" y2="6"></line>
+          <line x1="8" y1="12" x2="21" y2="12"></line>
+          <line x1="8" y1="18" x2="21" y2="18"></line>
+          <line x1="3" y1="6" x2="3.01" y2="6"></line>
+          <line x1="3" y1="12" x2="3.01" y2="12"></line>
+          <line x1="3" y1="18" x2="3.01" y2="18"></line>
+        </svg>
+        Queue Sync Job
+      </h3>
+      <p class="modal-body" id="queue-modal-body">
+        A sync job is currently in progress. Would you like to add this job to the queue?
+      </p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeQueueModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" id="queue-modal-confirm-btn" onclick="confirmQueueAction()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 11 12 14 22 4"></polyline>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+          Add to Queue
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.__isSyncRunning = {{ 'true' if sync_status and sync_status.is_running else 'false' }};
+    window.__syncQueueLength = {{ sync_status.queue_length if sync_status and sync_status.queue_length else 0 }};
+  </script>
 </body>
 </html>

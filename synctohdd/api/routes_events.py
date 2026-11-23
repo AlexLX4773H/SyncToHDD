@@ -28,10 +28,17 @@ async def sse_events(request: Request):
 
                 try:
                     event = await asyncio.wait_for(queue.get(), timeout=15.0)
-                    yield {
-                        "event": "progress",
-                        "data": json.dumps(event.__dict__),
-                    }
+                    if isinstance(event, dict) and event.get("type") == "status":
+                        yield {
+                            "event": "status",
+                            "data": json.dumps(event["data"]),
+                        }
+                    else:
+                        event_dict = event.__dict__ if hasattr(event, "__dict__") else event
+                        yield {
+                            "event": "progress",
+                            "data": json.dumps(event_dict),
+                        }
                 except asyncio.TimeoutError:
                     # Send keepalive ping to maintain connection
                     yield {

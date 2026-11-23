@@ -4,26 +4,26 @@
 {% block header_title %}Configured Sync Pairs{% endblock %}
 
 {% block header_actions %}
-  <button class="btn btn-secondary" onclick="triggerSyncAll(true)">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-      <circle cx="12" cy="12" r="3"/>
-    </svg>
-    Dry Run All
-  </button>
-  <button class="btn btn-secondary" onclick="triggerSyncAll(false)">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <polygon points="5 3 19 12 5 21 5 3"/>
-    </svg>
-    Sync All Pairs
-  </button>
-  <a href="/pairs/new" class="btn btn-primary" id="btn-add-pair">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <line x1="12" y1="5" x2="12" y2="19"/>
-      <line x1="5" y1="12" x2="19" y2="12"/>
-    </svg>
-    Add Sync Pair
-  </a>
+<button class="btn btn-secondary" onclick="triggerSyncAll(true)">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+  Dry Run All
+</button>
+<button class="btn btn-secondary" onclick="triggerSyncAll(false)">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <polygon points="5 3 19 12 5 21 5 3" />
+  </svg>
+  Sync All Pairs
+</button>
+<a href="/pairs/new" class="btn btn-primary" id="btn-add-pair">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <line x1="12" y1="5" x2="12" y2="19" />
+    <line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+  Add Sync Pair
+</a>
 {% endblock %}
 
 {% block content %}
@@ -41,14 +41,22 @@
         Sort By:
       </span>
       <select class="form-select pairs-sort-select" onchange="location.href=this.value">
-        <option value="/pairs?sort=name&order=asc" {% if current_sort == 'name' and current_order == 'asc' %}selected{% endif %}>Name (A &rarr; Z) [Default]</option>
-        <option value="/pairs?sort=name&order=desc" {% if current_sort == 'name' and current_order == 'desc' %}selected{% endif %}>Name (Z &rarr; A)</option>
-        <option value="/pairs?sort=source&order=asc" {% if current_sort == 'source' and current_order == 'asc' %}selected{% endif %}>Source Directory (A &rarr; Z)</option>
-        <option value="/pairs?sort=source&order=desc" {% if current_sort == 'source' and current_order == 'desc' %}selected{% endif %}>Source Directory (Z &rarr; A)</option>
-        <option value="/pairs?sort=destination&order=asc" {% if current_sort == 'destination' and current_order == 'asc' %}selected{% endif %}>Destination Directory (A &rarr; Z)</option>
-        <option value="/pairs?sort=destination&order=desc" {% if current_sort == 'destination' and current_order == 'desc' %}selected{% endif %}>Destination Directory (Z &rarr; A)</option>
-        <option value="/pairs?sort=mode&order=asc" {% if current_sort == 'mode' and current_order == 'asc' %}selected{% endif %}>Mode (Additive / Mirror)</option>
-        <option value="/pairs?sort=exclude&order=desc" {% if current_sort == 'exclude' and current_order == 'desc' %}selected{% endif %}>Exclusions (Most rules first)</option>
+        <option value="/pairs?sort=name&order=asc" {% if current_sort=='name' and current_order=='asc' %}selected{%
+          endif %}>Name (A &rarr; Z) [Default]</option>
+        <option value="/pairs?sort=name&order=desc" {% if current_sort=='name' and current_order=='desc' %}selected{%
+          endif %}>Name (Z &rarr; A)</option>
+        <option value="/pairs?sort=source&order=asc" {% if current_sort=='source' and current_order=='asc' %}selected{%
+          endif %}>Source Directory (A &rarr; Z)</option>
+        <option value="/pairs?sort=source&order=desc" {% if current_sort=='source' and current_order=='desc'
+          %}selected{% endif %}>Source Directory (Z &rarr; A)</option>
+        <option value="/pairs?sort=destination&order=asc" {% if current_sort=='destination' and current_order=='asc'
+          %}selected{% endif %}>Destination Directory (A &rarr; Z)</option>
+        <option value="/pairs?sort=destination&order=desc" {% if current_sort=='destination' and current_order=='desc'
+          %}selected{% endif %}>Destination Directory (Z &rarr; A)</option>
+        <option value="/pairs?sort=mode&order=asc" {% if current_sort=='mode' and current_order=='asc' %}selected{%
+          endif %}>Mode (Additive / Mirror)</option>
+        <option value="/pairs?sort=exclude&order=desc" {% if current_sort=='exclude' and current_order=='desc'
+          %}selected{% endif %}>Exclusions (Most rules first)</option>
       </select>
     </div>
     <div class="pairs-count-hint">
@@ -62,15 +70,22 @@
         <tr>
           <!-- Name / ID -->
           <th class="sortable {% if current_sort == 'name' %}sorted-active{% endif %}">
-            <a href="/pairs?sort=name&order={{ 'desc' if current_sort == 'name' and current_order == 'asc' else 'asc' }}" class="sort-header-link" title="Sort by Name">
+            <a href="/pairs?sort=name&order={{ 'desc' if current_sort == 'name' and current_order == 'asc' else 'asc' }}"
+              class="sort-header-link" title="Sort by Name">
               <span>Name / ID</span>
               <span class="sort-indicator {% if current_sort == 'name' %}active{% endif %}">
                 {% if current_sort == 'name' and current_order == 'desc' %}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
                 {% elif current_sort == 'name' and current_order == 'asc' %}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
                 {% else %}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 15l5 5 5-5M7 9l5-5 5 5" />
+                </svg>
                 {% endif %}
               </span>
             </a>
@@ -78,15 +93,22 @@
 
           <!-- Source Directory -->
           <th class="sortable {% if current_sort == 'source' %}sorted-active{% endif %}">
-            <a href="/pairs?sort=source&order={{ 'desc' if current_sort == 'source' and current_order == 'asc' else 'asc' }}" class="sort-header-link" title="Sort by Source Directory">
+            <a href="/pairs?sort=source&order={{ 'desc' if current_sort == 'source' and current_order == 'asc' else 'asc' }}"
+              class="sort-header-link" title="Sort by Source Directory">
               <span>Source Directory</span>
               <span class="sort-indicator {% if current_sort == 'source' %}active{% endif %}">
                 {% if current_sort == 'source' and current_order == 'desc' %}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
                 {% elif current_sort == 'source' and current_order == 'asc' %}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
                 {% else %}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 15l5 5 5-5M7 9l5-5 5 5" />
+                </svg>
                 {% endif %}
               </span>
             </a>
@@ -94,15 +116,22 @@
 
           <!-- Destination Directory -->
           <th class="sortable {% if current_sort == 'destination' %}sorted-active{% endif %}">
-            <a href="/pairs?sort=destination&order={{ 'desc' if current_sort == 'destination' and current_order == 'asc' else 'asc' }}" class="sort-header-link" title="Sort by Destination Directory">
+            <a href="/pairs?sort=destination&order={{ 'desc' if current_sort == 'destination' and current_order == 'asc' else 'asc' }}"
+              class="sort-header-link" title="Sort by Destination Directory">
               <span>Destination Directory</span>
               <span class="sort-indicator {% if current_sort == 'destination' %}active{% endif %}">
                 {% if current_sort == 'destination' and current_order == 'desc' %}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
                 {% elif current_sort == 'destination' and current_order == 'asc' %}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
                 {% else %}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 15l5 5 5-5M7 9l5-5 5 5" />
+                </svg>
                 {% endif %}
               </span>
             </a>
@@ -110,15 +139,22 @@
 
           <!-- Mode -->
           <th class="sortable {% if current_sort == 'mode' %}sorted-active{% endif %}">
-            <a href="/pairs?sort=mode&order={{ 'desc' if current_sort == 'mode' and current_order == 'asc' else 'asc' }}" class="sort-header-link" title="Sort by Mode">
+            <a href="/pairs?sort=mode&order={{ 'desc' if current_sort == 'mode' and current_order == 'asc' else 'asc' }}"
+              class="sort-header-link" title="Sort by Mode">
               <span>Mode</span>
               <span class="sort-indicator {% if current_sort == 'mode' %}active{% endif %}">
                 {% if current_sort == 'mode' and current_order == 'desc' %}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
                 {% elif current_sort == 'mode' and current_order == 'asc' %}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
                 {% else %}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 15l5 5 5-5M7 9l5-5 5 5" />
+                </svg>
                 {% endif %}
               </span>
             </a>
@@ -126,15 +162,22 @@
 
           <!-- Exclusions -->
           <th class="sortable {% if current_sort == 'exclude' %}sorted-active{% endif %}">
-            <a href="/pairs?sort=exclude&order={{ 'desc' if current_sort == 'exclude' and current_order == 'asc' else 'asc' }}" class="sort-header-link" title="Sort by Exclusions">
+            <a href="/pairs?sort=exclude&order={{ 'desc' if current_sort == 'exclude' and current_order == 'asc' else 'asc' }}"
+              class="sort-header-link" title="Sort by Exclusions">
               <span>Exclusions</span>
               <span class="sort-indicator {% if current_sort == 'exclude' %}active{% endif %}">
                 {% if current_sort == 'exclude' and current_order == 'desc' %}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
                 {% elif current_sort == 'exclude' and current_order == 'asc' %}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
                 {% else %}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 15l5 5 5-5M7 9l5-5 5 5" />
+                </svg>
                 {% endif %}
               </span>
             </a>
@@ -146,75 +189,82 @@
       </thead>
       <tbody>
         {% if pairs %}
-          {% for p in pairs %}
-          <tr>
-            <td>
-              <strong style="color: #fff; font-size: 0.95rem;">{{ p.name }}</strong>
-              <div style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">{{ p.id }}</div>
-            </td>
-            <td>
-              <span style="font-family: var(--font-mono); font-size: 0.85rem; color: #cbd5e1; word-break: break-all;">
-                {{ p.source }}
-              </span>
-            </td>
-            <td>
-              <span style="font-family: var(--font-mono); font-size: 0.85rem; color: #cbd5e1; word-break: break-all;">
-                {{ p.destination }}
-              </span>
-            </td>
-            <td>
-              <span class="badge badge-mode">{{ p.mode }}</span>
-            </td>
-            <td>
-              {% if p.exclude %}
-                <span style="font-size: 0.8rem; color: var(--text-secondary);" title="{{ p.exclude | join(', ') }}">
-                  {{ p.exclude | length }} rule(s)
-                </span>
-              {% else %}
-                <span style="color: var(--text-muted); font-size: 0.8rem;">None</span>
-              {% endif %}
-            </td>
-            <td>
-              {% if p.checksum %}
-                <span class="badge" style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; font-size: 0.7rem;">SHA-256</span>
-              {% endif %}
-              {% if p.bandwidth_limit %}
-                <span class="badge" style="background: rgba(14, 165, 233, 0.15); color: #7dd3fc; font-size: 0.7rem;">{{ p.bandwidth_limit }}</span>
-              {% endif %}
-            </td>
-            <td style="text-align: right; white-space: nowrap;">
-              <button class="btn btn-primary btn-sm" onclick="triggerSync('{{ p.id }}', false)" title="Start Live Sync">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="5 3 19 12 5 21 5 3"/>
-                </svg>
-                Sync
-              </button>
-              <button class="btn btn-secondary btn-sm" onclick="triggerSync('{{ p.id }}', true)" title="Preview with Dry Run">
-                Dry Run
-              </button>
-              <button class="btn btn-secondary btn-sm" onclick="testPairPaths('{{ p.id }}')" title="Check path readability and destination disk">
-                Test
-              </button>
-              <a href="/pairs/{{ p.id }}/edit" class="btn btn-secondary btn-sm" title="Edit Pair">Edit</a>
-              <a href="/pairs/{{ p.id }}/duplicate" class="btn btn-secondary btn-sm" title="Duplicate Pair">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                </svg>
-                Duplicate
-              </a>
-              <button class="btn btn-danger btn-sm" onclick="deletePair('{{ p.id }}', '{{ p.name }}')" title="Delete Pair">
-                &times;
-              </button>
-            </td>
-          </tr>
-          {% endfor %}
+        {% for p in pairs %}
+        <tr>
+          <td>
+            <strong style="color: #fff; font-size: 0.95rem;">{{ p.name }}</strong>
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">{{ p.id }}</div>
+          </td>
+          <td>
+            <span style="font-family: var(--font-mono); font-size: 0.85rem; color: #cbd5e1; word-break: break-all;">
+              {{ p.source }}
+            </span>
+          </td>
+          <td>
+            <span style="font-family: var(--font-mono); font-size: 0.85rem; color: #cbd5e1; word-break: break-all;">
+              {{ p.destination }}
+            </span>
+          </td>
+          <td>
+            <span class="badge badge-mode">{{ p.mode }}</span>
+          </td>
+          <td>
+            {% if p.exclude %}
+            <span style="font-size: 0.8rem; color: var(--text-secondary);" title="{{ p.exclude | join(', ') }}">
+              {{ p.exclude | length }} rule(s)
+            </span>
+            {% else %}
+            <span style="color: var(--text-muted); font-size: 0.8rem;">None</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if p.checksum %}
+            <span class="badge"
+              style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; font-size: 0.7rem;">SHA-256</span>
+            {% endif %}
+            {% if p.bandwidth_limit %}
+            <span class="badge" style="background: rgba(14, 165, 233, 0.15); color: #7dd3fc; font-size: 0.7rem;">{{
+              p.bandwidth_limit }}</span>
+            {% endif %}
+          </td>
+          <td style="text-align: right; white-space: nowrap;">
+            <button class="btn btn-primary btn-sm"
+              onclick="triggerSync('{{ p.id }}', false, false, '{{ p.name | escape }}')"
+              title="Start or Queue Live Sync">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              Sync
+            </button>
+            <button class="btn btn-secondary btn-sm"
+              onclick="triggerSync('{{ p.id }}', true, false, '{{ p.name | escape }}')" title="Preview with Dry Run">
+              Dry Run
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="testPairPaths('{{ p.id }}')"
+              title="Check path readability and destination disk">
+              Test
+            </button>
+            <a href="/pairs/{{ p.id }}/edit" class="btn btn-secondary btn-sm" title="Edit Pair">Edit</a>
+            <a href="/pairs/{{ p.id }}/duplicate" class="btn btn-secondary btn-sm" title="Duplicate Pair">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              Duplicate
+            </a>
+            <button class="btn btn-danger btn-sm" onclick="deletePair('{{ p.id }}', '{{ p.name }}')"
+              title="Delete Pair">
+              &times;
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
         {% else %}
-          <tr>
-            <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
-              No sync pairs configured yet. Click "Add Sync Pair" above to configure your first backup job.
-            </td>
-          </tr>
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
+            No sync pairs configured yet. Click "Add Sync Pair" above to configure your first backup job.
+          </td>
+        </tr>
         {% endif %}
       </tbody>
     </table>

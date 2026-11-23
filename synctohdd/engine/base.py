@@ -39,6 +39,7 @@ class SyncProgressEvent:
     files_unchanged: int = 0
     message: str = ""
     timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    queue_length: int = 0
 
 @dataclass
 class SyncSummary:

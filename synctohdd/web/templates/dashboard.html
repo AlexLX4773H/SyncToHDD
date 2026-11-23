@@ -168,13 +168,13 @@
         <div><strong>To:</strong> <span style="font-family: var(--font-mono); color: #cbd5e1; word-break: break-all;">{{ pair.destination }}</span></div>
       </div>
       <div class="pair-card-actions">
-        <button class="btn btn-primary btn-sm" style="flex: 1;" onclick="triggerSync('{{ pair.id }}', false)">
+        <button class="btn btn-primary btn-sm" style="flex: 1;" onclick="triggerSync('{{ pair.id }}', false, false, '{{ pair.name | escape }}')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="5 3 19 12 5 21 5 3"/>
           </svg>
           Sync
         </button>
-        <button class="btn btn-secondary btn-sm" onclick="triggerSync('{{ pair.id }}', true)">
+        <button class="btn btn-secondary btn-sm" onclick="triggerSync('{{ pair.id }}', true, false, '{{ pair.name | escape }}')">
           Dry Run
         </button>
       </div>

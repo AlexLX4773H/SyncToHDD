@@ -40,6 +40,7 @@ function initSSE() {
     try {
       const data = JSON.parse(e.data);
       updateGlobalStatus(data);
+      updateQueueUI(data.queue || []);
     } catch (err) {
       console.error("Failed to parse status event", err);
     }
@@ -48,7 +49,11 @@ function initSSE() {
   evtSource.addEventListener("progress", (e) => {
     try {
       const data = JSON.parse(e.data);
-      updateGlobalStatus({ is_running: data.status === "syncing" || data.status === "scanning", latest_event: data });
+      updateGlobalStatus({
+        is_running: data.status === "syncing" || data.status === "scanning",
+        latest_event: data,
+        queue_length: data.queue_length !== undefined ? data.queue_length : window.__syncQueueLength,
+      });
       handleLiveProgress(data);
     } catch (err) {
       console.error("Failed to parse progress event", err);
@@ -69,8 +74,16 @@ function updateGlobalStatus(data) {
   const isRunning = Boolean(data.is_running);
   window.__isSyncRunning = isRunning;
 
+  if (data.queue_length !== undefined) {
+    window.__syncQueueLength = Number(data.queue_length);
+  } else if (data.queue && Array.isArray(data.queue)) {
+    window.__syncQueueLength = data.queue.length;
+  }
+
+  const qLen = window.__syncQueueLength || 0;
+
   if (cancelBtn) {
-    cancelBtn.style.display = isRunning ? "inline-flex" : "none";
+    cancelBtn.style.display = (isRunning || qLen > 0) ? "inline-flex" : "none";
   }
 
   if (dot) {
@@ -83,8 +96,14 @@ function updateGlobalStatus(data) {
 
   if (text) {
     if (isRunning) {
-      const pairName = data.latest_event ? data.latest_event.pair_name : "Active";
-      text.textContent = `Syncing: ${pairName}`;
+      const pairName = data.latest_event ? data.latest_event.pair_name : (data.active_pair_name || "Active");
+      if (qLen > 0) {
+        text.textContent = `Syncing: ${pairName} (${qLen} queued)`;
+      } else {
+        text.textContent = `Syncing: ${pairName}`;
+      }
+    } else if (qLen > 0) {
+      text.textContent = `Queued: ${qLen} job${qLen !== 1 ? 's' : ''}`;
     } else {
       text.textContent = "Engine Idle";
     }
@@ -157,18 +176,182 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+// Queue UI & Modal Manager
+let pendingQueueTarget = null;
+
+function openQueueModal(target) {
+  pendingQueueTarget = target;
+  const modal = document.getElementById("queue-confirm-modal");
+  const modalBody = document.getElementById("queue-modal-body");
+  const confirmBtn = document.getElementById("queue-modal-confirm-btn");
+
+  if (!modal || !modalBody || !confirmBtn) {
+    // Native fallback if modal element is not in DOM
+    const label = target.isAll ? "ALL configured pairs" : `"${target.pairName || target.pairId}"`;
+    const mode = target.dryRun ? "Dry Run" : "Live Sync";
+    if (confirm(`A sync is already in progress.\n\nWould you like to queue ${label} (${mode}) to run automatically when current sync finishes?`)) {
+      if (target.isAll) {
+        executeSyncAll(target.dryRun, true);
+      } else {
+        executeSync(target.pairId, target.dryRun, true, target.pairName);
+      }
+    }
+    return;
+  }
+
+  if (target.isAll) {
+    modalBody.innerHTML = `
+      A sync job is currently in progress.<br><br>
+      Would you like to <strong>queue ALL configured sync pairs</strong> (${target.dryRun ? '<span class="badge badge-mode">Dry Run</span>' : '<span class="badge badge-syncing">Live Sync</span>'}) to run sequentially after the current sync finishes?
+    `;
+    confirmBtn.innerHTML = `
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="9 11 12 14 22 4"></polyline>
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+      </svg>
+      Queue All Pairs
+    `;
+  } else {
+    modalBody.innerHTML = `
+      A sync job is currently in progress.<br><br>
+      Would you like to add <strong>${escapeHtml(target.pairName || target.pairId)}</strong> (${target.dryRun ? '<span class="badge badge-mode">Dry Run</span>' : '<span class="badge badge-syncing">Live Sync</span>'}) to the execution queue? It will run automatically without running in parallel.
+    `;
+    confirmBtn.innerHTML = `
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="9 11 12 14 22 4"></polyline>
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+      </svg>
+      Add to Queue
+    `;
+  }
+
+  modal.classList.add("active");
+}
+
+function closeQueueModal() {
+  const modal = document.getElementById("queue-confirm-modal");
+  if (modal) modal.classList.remove("active");
+  pendingQueueTarget = null;
+}
+
+function confirmQueueAction() {
+  if (!pendingQueueTarget) return;
+  const target = pendingQueueTarget;
+  closeQueueModal();
+
+  if (target.isAll) {
+    executeSyncAll(target.dryRun, true);
+  } else {
+    executeSync(target.pairId, target.dryRun, true, target.pairName);
+  }
+}
+
+function updateQueueUI(queue) {
+  const qList = Array.isArray(queue) ? queue : [];
+  window.__syncQueueLength = qList.length;
+
+  const countBadge = document.getElementById("queue-count-badge");
+  if (countBadge) {
+    countBadge.textContent = `${qList.length} waiting`;
+  }
+
+  const clearBtn = document.getElementById("btn-clear-queue");
+  if (clearBtn) {
+    clearBtn.style.display = qList.length > 0 ? "inline-flex" : "none";
+  }
+
+  const container = document.getElementById("queue-items-container");
+  if (!container) return;
+
+  if (qList.length === 0) {
+    container.innerHTML = `
+      <div class="queue-empty-message">
+        No jobs currently waiting in the queue. Jobs queued while a sync is running will appear here.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = qList.map((job) => `
+    <div class="queue-item" id="queue-item-${escapeHtml(job.job_id)}">
+      <div class="queue-item-left">
+        <span class="queue-pos-badge">#${job.position}</span>
+        <div class="queue-item-info">
+          <div class="queue-item-name-row">
+            <strong class="queue-item-title">${escapeHtml(job.pair_name)}</strong>
+            <span class="badge ${job.dry_run ? 'badge-mode' : 'badge-syncing'}">
+              ${job.dry_run ? 'Dry Run' : 'Live Sync'}
+            </span>
+          </div>
+          <div class="queue-item-paths">
+            <span>${escapeHtml(job.source)} &rarr; ${escapeHtml(job.destination)}</span>
+          </div>
+        </div>
+      </div>
+      <div class="queue-item-actions">
+        <button class="btn btn-secondary btn-sm" onclick="removeQueuedJob('${escapeHtml(job.job_id)}', '${escapeHtml(job.pair_name)}')" title="Remove this job from the queue">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          Remove
+        </button>
+      </div>
+    </div>
+  `).join("");
+}
+
+async function fetchSyncStatus() {
+  try {
+    const res = await fetch("/api/sync/status");
+    if (res.ok) {
+      const data = await res.json();
+      updateGlobalStatus(data);
+      updateQueueUI(data.queue || []);
+    }
+  } catch (err) {
+    console.warn("Failed to fetch sync status", err);
+  }
+}
+
 // API Triggers
-async function triggerSync(pairId, dryRun = false) {
+async function triggerSync(pairId, dryRun = false, queue = false, pairName = "") {
+  if (!queue && window.__isSyncRunning) {
+    openQueueModal({
+      pairId: pairId,
+      pairName: pairName || pairId,
+      dryRun: dryRun,
+      isAll: false,
+    });
+    return;
+  }
+
+  await executeSync(pairId, dryRun, queue, pairName);
+}
+
+async function executeSync(pairId, dryRun = false, queue = false, pairName = "") {
   try {
     const res = await fetch(`/api/sync/${pairId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dry_run: dryRun }),
+      body: JSON.stringify({ dry_run: dryRun, queue: queue }),
     });
 
     if (res.status === 409) {
-      const err = await res.json();
-      showToast(err.detail || "A sync is already running", "warning");
+      const err = await res.json().catch(() => ({}));
+      // Server returned conflict - open option to queue
+      openQueueModal({
+        pairId: pairId,
+        pairName: pairName || pairId,
+        dryRun: dryRun,
+        isAll: false,
+      });
+      return;
+    }
+
+    if (res.status === 400) {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || "Unable to queue job", "warning");
       return;
     }
 
@@ -178,55 +361,140 @@ async function triggerSync(pairId, dryRun = false) {
     }
 
     const data = await res.json();
-    showToast(`${dryRun ? "Dry run" : "Sync"} started for ${data.pair_name}`, "success");
-    window.location.href = "/active";
+    if (data.status === "queued") {
+      showToast(data.message || `Job for ${data.pair_name || pairName || 'pair'} queued at position #${data.queue_position}`, "success");
+      fetchSyncStatus();
+    } else {
+      showToast(`${dryRun ? "Dry run" : "Sync"} started for ${data.pair_name || pairName || 'pair'}`, "success");
+      window.location.href = "/active";
+    }
   } catch (err) {
     showToast("Error communicating with server", "danger");
   }
 }
 
-async function triggerSyncAll(dryRun = false) {
-  if (!confirm(`Are you sure you want to run ${dryRun ? "dry run for" : "sync on"} ALL pairs?`)) {
+async function triggerSyncAll(dryRun = false, queue = false) {
+  if (!queue && window.__isSyncRunning) {
+    openQueueModal({
+      isAll: true,
+      dryRun: dryRun,
+    });
     return;
   }
 
+  if (!queue && !confirm(`Are you sure you want to run ${dryRun ? "dry run for" : "sync on"} ALL pairs?`)) {
+    return;
+  }
+
+  await executeSyncAll(dryRun, queue);
+}
+
+async function executeSyncAll(dryRun = false, queue = false) {
   try {
     const res = await fetch("/api/sync/all", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dry_run: dryRun }),
+      body: JSON.stringify({ dry_run: dryRun, queue: queue }),
     });
 
+    if (res.status === 409) {
+      openQueueModal({
+        isAll: true,
+        dryRun: dryRun,
+      });
+      return;
+    }
+
     if (!res.ok) {
-      const err = await res.json();
+      const err = await res.json().catch(() => ({}));
       showToast(err.detail || "Failed to start sync all", "danger");
       return;
     }
 
-    showToast("All sync jobs queued", "success");
-    window.location.href = "/active";
+    const data = await res.json();
+    if (data.status === "queued") {
+      showToast(data.message || "All pairs queued to run sequentially", "success");
+      fetchSyncStatus();
+    } else {
+      showToast("All sync jobs queued", "success");
+      window.location.href = "/active";
+    }
   } catch (err) {
     showToast("Error starting batch sync", "danger");
   }
 }
 
-async function cancelActiveSync() {
-  if (window.__isSyncRunning === false) {
-    showToast("No active sync is currently running to cancel", "info");
-    return;
+async function removeQueuedJob(jobId, pairName) {
+  try {
+    const res = await fetch(`/api/sync/queue/${jobId}`, { method: "DELETE" });
+    if (res.ok) {
+      const data = await res.json();
+      showToast(data.message || `Removed "${pairName}" from queue`, "info");
+      fetchSyncStatus();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || "Failed to remove job from queue", "danger");
+    }
+  } catch (err) {
+    showToast("Error removing job from queue", "danger");
   }
+}
 
-  if (!confirm("Are you sure you want to cancel the currently active sync run?")) {
+async function clearQueue() {
+  if (!confirm("Are you sure you want to remove all pending jobs from the sync queue?")) {
     return;
   }
 
   try {
-    const res = await fetch("/api/sync/active", { method: "DELETE" });
+    const res = await fetch("/api/sync/queue", { method: "DELETE" });
     if (res.ok) {
-      showToast("Cancellation requested", "warning");
-      window.__isSyncRunning = false;
-      const cancelBtn = document.getElementById("btn-cancel-sync");
-      if (cancelBtn) cancelBtn.style.display = "none";
+      const data = await res.json();
+      showToast(data.message || "Sync queue cleared", "info");
+      fetchSyncStatus();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      showToast(err.detail || "Failed to clear sync queue", "danger");
+    }
+  } catch (err) {
+    showToast("Error clearing sync queue", "danger");
+  }
+}
+
+async function cancelActiveSync() {
+  const isRunning = Boolean(window.__isSyncRunning);
+  const qLen = Number(window.__syncQueueLength) || 0;
+
+  if (!isRunning && qLen === 0) {
+    showToast("No active or queued sync to cancel", "info");
+    return;
+  }
+
+  let clearQueueFlag = false;
+
+  if (qLen > 0) {
+    const choice = confirm(
+      `A sync is currently running, and there are ${qLen} job(s) waiting in the queue.\n\n` +
+      `Click OK to cancel the active sync AND remove all pending jobs from queue.\n` +
+      `Click Cancel to cancel ONLY the active sync (next queued job will start).`
+    );
+    if (choice) {
+      clearQueueFlag = true;
+    } else {
+      const cancelOnlyActive = confirm("Cancel the currently active sync run only?");
+      if (!cancelOnlyActive) return;
+      clearQueueFlag = false;
+    }
+  } else {
+    if (!confirm("Are you sure you want to cancel the currently active sync run?")) {
+      return;
+    }
+  }
+
+  try {
+    const res = await fetch(`/api/sync/active?clear_queue=${clearQueueFlag}`, { method: "DELETE" });
+    if (res.ok) {
+      showToast(clearQueueFlag ? "Cancellation requested and queue cleared" : "Cancellation requested for active sync", "warning");
+      fetchSyncStatus();
     } else {
       const err = await res.json().catch(() => ({}));
       showToast(err.detail || "Failed to cancel sync", "danger");
