@@ -246,12 +246,27 @@ class SyncManager:
                 for idx, job in enumerate(self._queue)
             ]
 
+    @property
+    def is_busy(self) -> bool:
+        """True if sync is currently executing or a batch/queue sequence is active."""
+        with self._lock:
+            return bool(self.is_running or self.is_batch_running or self._queue)
+
     def get_job_position(self, job_id: str) -> int:
         """Return 1-based queue position of a job_id, or 0 if not found."""
         with self._lock:
             for idx, job in enumerate(self._queue):
                 if job.job_id == job_id:
                     return idx + 1
+            return 0
+
+    def get_job_position_by_pair(self, pair_id: str, dry_run: Optional[bool] = None) -> int:
+        """Return 1-based queue position of a pair_id (matching dry_run if specified), or 0 if not found."""
+        with self._lock:
+            for idx, job in enumerate(self._queue):
+                if job.pair_id == pair_id:
+                    if dry_run is None or job.dry_run == dry_run:
+                        return idx + 1
             return 0
 
     async def request_sync_job(
@@ -261,15 +276,34 @@ class SyncManager:
         queue: bool = False,
         config: Optional[AppConfig] = None,
     ) -> Dict[str, Any]:
-        """Request a sync job. If already running and queue=True, enqueue the job; otherwise raise."""
+        """Request a sync job. If already running/busy and queue=True, enqueue the job; otherwise raise."""
         with self._lock:
-            is_busy = self.is_running
+            busy = bool(self.is_running or self.is_batch_running or self._queue)
 
-        if is_busy:
+        if busy:
             if not queue:
-                raise RuntimeError(f"A sync is already in progress: {self.active_pair_name or 'Active Sync'} ({self.active_run_id})")
+                active_desc = self.active_pair_name or ('Batch' if self.is_batch_running else 'Active Sync')
+                raise RuntimeError(f"A sync is already in progress: {active_desc} ({self.active_run_id or 'queued'})")
+
+            # Check if this exact job is already in queue
+            existing_pos = self.get_job_position_by_pair(pair.id, dry_run=dry_run)
+            if existing_pos > 0:
+                return {
+                    "status": "queued",
+                    "pair_id": pair.id,
+                    "pair_name": pair.name,
+                    "dry_run": dry_run,
+                    "queue_position": existing_pos,
+                    "message": f"Sync job for '{pair.name}' is already queued at position #{existing_pos}",
+                }
+
             job = self.enqueue_job(pair, dry_run=dry_run)
             pos = self.get_job_position(job.job_id)
+
+            # If no worker is currently running, kick off queue processing
+            if not self.is_running:
+                asyncio.create_task(self._process_next_in_queue())
+
             return {
                 "status": "queued",
                 "job_id": job.job_id,
@@ -277,7 +311,7 @@ class SyncManager:
                 "pair_name": pair.name,
                 "dry_run": dry_run,
                 "queue_position": pos,
-                "message": f"Sync job for '{pair.name}' added to queue at position {pos}",
+                "message": f"Sync job for '{pair.name}' added to queue at position #{pos}",
             }
         else:
             run_id = await self.start_sync_job(pair, dry_run=dry_run, config=config)
@@ -301,7 +335,7 @@ class SyncManager:
         """Initiate a sync job for a single pair immediately."""
         with self._lock:
             if self.is_running:
-                raise RuntimeError(f"A sync is already in progress: {self.active_pair_name or 'Batch'} ({self.active_run_id})")
+                raise RuntimeError(f"A sync is already in progress: {self.active_pair_name or 'Active Sync'} ({self.active_run_id})")
             if self.is_batch_running and not from_batch and not from_queue:
                 raise RuntimeError(f"A sync is already in progress: {self.active_pair_name or 'Batch'} ({self.active_run_id})")
 
@@ -337,18 +371,25 @@ class SyncManager:
             raise ValueError("No sync pairs configured")
 
         with self._lock:
-            is_busy = self.is_running
+            busy = bool(self.is_running or self.is_batch_running or self._queue)
 
-        if is_busy:
+        if busy:
             if not queue:
-                raise RuntimeError(f"A sync is already in progress: {self.active_pair_name or 'Active Sync'} ({self.active_run_id})")
+                active_desc = self.active_pair_name or ('Batch' if self.is_batch_running else 'Active Sync')
+                raise RuntimeError(f"A sync is already in progress: {active_desc} ({self.active_run_id or 'queued'})")
+
             queued_jobs = self.enqueue_sync_all(dry_run=dry_run, config=cfg)
+            if not self.is_running and self._queue:
+                asyncio.create_task(self._process_next_in_queue())
+
+            count = len(queued_jobs)
+            msg = f"Queued {count} sync pair(s) to run sequentially" if count > 0 else "All configured pairs are already running or queued"
             return {
                 "status": "queued",
                 "queued_pairs": [j.pair_id for j in queued_jobs],
                 "queue_length": len(self.get_queue()),
                 "dry_run": dry_run,
-                "message": f"Queued {len(queued_jobs)} sync pair(s) to run sequentially",
+                "message": msg,
             }
         else:
             pairs = cfg.sync_pairs

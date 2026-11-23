@@ -175,13 +175,13 @@
   <div style="display: flex; flex-wrap: wrap; gap: 10px;">
     {% for p in pairs %}
     <div style="display: inline-flex; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow: hidden; background: rgba(15, 23, 42, 0.5);">
-      <button class="btn btn-primary btn-sm" style="border-radius: 0; border: none;" onclick="triggerSync('{{ p.id }}', false, false, '{{ p.name | escape }}')" title="Queue or start live sync">
+      <button class="btn btn-primary btn-sm" style="border-radius: 0; border: none;" onclick="triggerSync('{{ p.id }}', false, true, '{{ p.name | escape }}')" title="Queue or start live sync">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polygon points="5 3 19 12 5 21 5 3"/>
         </svg>
-        Sync {{ p.name }}
+        {{ 'Queue ' + p.name if sync_status.is_running else 'Sync ' + p.name }}
       </button>
-      <button class="btn btn-secondary btn-sm" style="border-radius: 0; border: none; border-left: 1px solid var(--border-subtle);" onclick="triggerSync('{{ p.id }}', true, false, '{{ p.name | escape }}')" title="Queue or start dry run">
+      <button class="btn btn-secondary btn-sm" style="border-radius: 0; border: none; border-left: 1px solid var(--border-subtle);" onclick="triggerSync('{{ p.id }}', true, true, '{{ p.name | escape }}')" title="Queue or start dry run">
         Dry Run
       </button>
     </div>

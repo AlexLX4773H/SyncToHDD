@@ -71,9 +71,6 @@ function updateGlobalStatus(data) {
   const mobileDot = document.getElementById("mobile-status-dot");
   const cancelBtn = document.getElementById("btn-cancel-sync");
 
-  const isRunning = Boolean(data.is_running);
-  window.__isSyncRunning = isRunning;
-
   if (data.queue_length !== undefined) {
     window.__syncQueueLength = Number(data.queue_length);
   } else if (data.queue && Array.isArray(data.queue)) {
@@ -81,6 +78,8 @@ function updateGlobalStatus(data) {
   }
 
   const qLen = window.__syncQueueLength || 0;
+  const isRunning = Boolean(data.is_running || qLen > 0);
+  window.__isSyncRunning = isRunning;
 
   if (cancelBtn) {
     cancelBtn.style.display = (isRunning || qLen > 0) ? "inline-flex" : "none";
@@ -331,7 +330,8 @@ async function triggerSync(pairId, dryRun = false, queue = false, pairName = "")
 
 async function executeSync(pairId, dryRun = false, queue = false, pairName = "") {
   try {
-    const res = await fetch(`/api/sync/${pairId}`, {
+    const qParam = queue ? "?queue=true" : "";
+    const res = await fetch(`/api/sync/${pairId}${qParam}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ dry_run: dryRun, queue: queue }),
@@ -339,6 +339,10 @@ async function executeSync(pairId, dryRun = false, queue = false, pairName = "")
 
     if (res.status === 409) {
       const err = await res.json().catch(() => ({}));
+      if (queue) {
+        showToast(err.detail || "Sync engine is busy. Could not queue job.", "warning");
+        return;
+      }
       // Server returned conflict - open option to queue
       openQueueModal({
         pairId: pairId,
@@ -391,13 +395,19 @@ async function triggerSyncAll(dryRun = false, queue = false) {
 
 async function executeSyncAll(dryRun = false, queue = false) {
   try {
-    const res = await fetch("/api/sync/all", {
+    const qParam = queue ? "?queue=true" : "";
+    const res = await fetch(`/api/sync/all${qParam}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ dry_run: dryRun, queue: queue }),
     });
 
     if (res.status === 409) {
+      const err = await res.json().catch(() => ({}));
+      if (queue) {
+        showToast(err.detail || "Sync engine is busy. Could not queue all pairs.", "warning");
+        return;
+      }
       openQueueModal({
         isAll: true,
         dryRun: dryRun,
@@ -650,6 +660,7 @@ window.toggleSidebar = toggleSidebar;
 // Auto-initialize SSE and listeners on page load
 document.addEventListener("DOMContentLoaded", () => {
   initSSE();
+  fetchSyncStatus();
 
   // Close sidebar when pressing ESC
   document.addEventListener("keydown", (e) => {

@@ -169,7 +169,60 @@ def test_sync_queue_api_endpoints():
             client.delete("/api/pairs/api-queue-p2")
             client.delete("/api/runs?keep_running=false")
 
+def test_queue_when_busy_and_endpoints():
+    """Verify queuing works without 409 when batch is running, using both query param and /queue route."""
+    with TestClient(app) as client:
+        client.delete("/api/sync/active?clear_queue=true")
+        client.delete("/api/sync/queue")
+
+        with tempfile.TemporaryDirectory() as src, tempfile.TemporaryDirectory() as dst:
+            p_data = {
+                "id": "busy-test-p1",
+                "name": "Busy Test P1",
+                "source": src,
+                "destination": dst,
+                "mode": "mirror",
+            }
+            client.post("/api/pairs", json=p_data)
+
+            # Simulate batch running state
+            sync_manager.is_batch_running = True
+            try:
+                # 1. Calling without queue -> 409 Conflict
+                res_no_q = client.post("/api/sync/busy-test-p1", json={"dry_run": False, "queue": False})
+                assert res_no_q.status_code == 409
+                assert "A sync is already in progress" in res_no_q.json()["detail"]
+
+                # 2. Calling with query param ?queue=true -> 200 Queued
+                res_q_param = client.post("/api/sync/busy-test-p1?queue=true", json={"dry_run": False})
+                assert res_q_param.status_code == 200
+                assert res_q_param.json()["status"] == "queued"
+                assert res_q_param.json()["queue_position"] == 1
+
+                # 3. Calling duplicate with queue=True -> 200 Queued with existing position (no 409 or crash)
+                res_dup = client.post("/api/sync/busy-test-p1", json={"dry_run": False, "queue": True})
+                assert res_dup.status_code == 200
+                assert res_dup.json()["status"] == "queued"
+                assert res_dup.json()["queue_position"] == 1
+
+                # 4. Calling explicit /queue endpoint for dry run -> 200 Queued at position 2
+                res_explicit = client.post("/api/sync/busy-test-p1/queue", json={"dry_run": True})
+                assert res_explicit.status_code == 200
+                assert res_explicit.json()["status"] == "queued"
+                assert res_explicit.json()["queue_position"] == 2
+
+                # 5. Calling /api/sync/all/queue
+                res_all_q = client.post("/api/sync/all/queue", json={"dry_run": False})
+                assert res_all_q.status_code == 200
+                assert res_all_q.json()["status"] == "queued"
+            finally:
+                sync_manager.cancel_current_sync(clear_queue=True)
+                sync_manager.is_batch_running = False
+                client.delete("/api/pairs/busy-test-p1")
+                client.delete("/api/runs?keep_running=false")
+
 if __name__ == "__main__":
     test_sync_manager_queue_logic()
     test_sync_queue_api_endpoints()
+    test_queue_when_busy_and_endpoints()
     print("All queue tests passed!")

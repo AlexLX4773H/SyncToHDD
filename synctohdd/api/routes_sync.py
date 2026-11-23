@@ -56,7 +56,7 @@ async def trigger_sync_all(
     queue: Optional[bool] = Query(None, description="Queue sync jobs if engine is busy"),
 ):
     """Trigger sync for all configured pairs sequentially, with an option to queue if already running."""
-    should_queue = queue if queue is not None else req.queue
+    should_queue = bool(queue) if queue is not None else bool(req.queue)
     try:
         result = await sync_manager.start_sync_all_jobs(dry_run=req.dry_run, queue=should_queue)
         return result
@@ -65,6 +65,20 @@ async def trigger_sync_all(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(e),
         )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
+@router.post("/all/queue", response_model=Dict[str, Any])
+async def queue_sync_all(
+    req: SyncRequest = SyncRequest(),
+):
+    """Explicitly queue all configured pairs to run sequentially (starts immediately if idle)."""
+    try:
+        result = await sync_manager.start_sync_all_jobs(dry_run=req.dry_run, queue=True)
+        return result
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -86,7 +100,7 @@ async def trigger_sync_pair(
             detail=f"Sync pair '{pair_id}' not found",
         )
 
-    should_queue = queue if queue is not None else req.queue
+    should_queue = bool(queue) if queue is not None else bool(req.queue)
     try:
         result = await sync_manager.request_sync_job(
             pair=pair,
@@ -101,6 +115,34 @@ async def trigger_sync_pair(
             detail=str(e),
         )
     except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+
+@router.post("/{pair_id}/queue", response_model=Dict[str, Any])
+async def queue_sync_pair(
+    pair_id: str,
+    req: SyncRequest = SyncRequest(),
+):
+    """Explicitly queue a sync job for a specific pair (starts immediately if idle)."""
+    config = load_config()
+    pair = config.get_pair_by_id(pair_id)
+    if not pair:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Sync pair '{pair_id}' not found",
+        )
+
+    try:
+        result = await sync_manager.request_sync_job(
+            pair=pair,
+            dry_run=req.dry_run,
+            queue=True,
+            config=config,
+        )
+        return result
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),

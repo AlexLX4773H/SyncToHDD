@@ -165,6 +165,7 @@ async def pair_new_view(request: Request):
         context={
             "pair": None,
             "is_new": True,
+            "sync_status": sync_manager.get_status(),
             "active_tab": "pairs",
         },
     )
@@ -183,6 +184,7 @@ async def pair_edit_view(pair_id: str, request: Request):
         context={
             "pair": pair,
             "is_new": False,
+            "sync_status": sync_manager.get_status(),
             "active_tab": "pairs",
         },
     )
@@ -217,6 +219,7 @@ async def pair_duplicate_view(pair_id: str, request: Request):
             "original_pair": pair,
             "is_new": True,
             "is_duplicate": True,
+            "sync_status": sync_manager.get_status(),
             "active_tab": "pairs",
         },
     )
@@ -316,6 +319,7 @@ async def runs_history_view(
             "selected_pair": pair,
             "selected_status": status,
             "pairs": config.sync_pairs,
+            "sync_status": sync_manager.get_status(),
             "active_tab": "runs",
         },
     )
@@ -374,6 +378,7 @@ async def run_detail_view(
             "total_pages": total_pages,
             "selected_action": action,
             "search_query": search,
+            "sync_status": sync_manager.get_status(),
             "active_tab": "runs",
         },
     )
