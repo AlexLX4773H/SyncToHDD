@@ -188,12 +188,18 @@ def test_queue_when_busy_and_endpoints():
             # Simulate batch running state
             sync_manager.is_batch_running = True
             try:
-                # 1. Calling without queue -> 409 Conflict
+                # 1. Calling with explicit queue=False -> 409 Conflict
                 res_no_q = client.post("/api/sync/busy-test-p1", json={"dry_run": False, "queue": False})
                 assert res_no_q.status_code == 409
                 assert "A sync is already in progress" in res_no_q.json()["detail"]
 
-                # 2. Calling with query param ?queue=true -> 200 Queued
+                # 2. Calling with default body (no queue field specified) -> 200 Queued by default
+                res_default = client.post("/api/sync/busy-test-p1", json={"dry_run": False})
+                assert res_default.status_code == 200
+                assert res_default.json()["status"] == "queued"
+                assert res_default.json()["queue_position"] == 1
+
+                # 3. Calling with query param ?queue=true -> 200 Queued
                 res_q_param = client.post("/api/sync/busy-test-p1?queue=true", json={"dry_run": False})
                 assert res_q_param.status_code == 200
                 assert res_q_param.json()["status"] == "queued"

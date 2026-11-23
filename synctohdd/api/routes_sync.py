@@ -8,7 +8,7 @@ router = APIRouter(prefix="/api/sync", tags=["Sync Operations"])
 
 class SyncRequest(BaseModel):
     dry_run: bool = False
-    queue: bool = False
+    queue: bool = True
 
 @router.get("/status", response_model=Dict[str, Any])
 def get_sync_status():

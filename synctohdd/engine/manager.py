@@ -273,7 +273,7 @@ class SyncManager:
         self,
         pair: SyncPairConfig,
         dry_run: bool = False,
-        queue: bool = False,
+        queue: bool = True,
         config: Optional[AppConfig] = None,
     ) -> Dict[str, Any]:
         """Request a sync job. If already running/busy and queue=True, enqueue the job; otherwise raise."""
@@ -364,7 +364,7 @@ class SyncManager:
         asyncio.create_task(self._execute_sync_task(pair, run_id, dry_run))
         return run_id
 
-    async def start_sync_all_jobs(self, dry_run: bool = False, queue: bool = False) -> Dict[str, Any]:
+    async def start_sync_all_jobs(self, dry_run: bool = False, queue: bool = True) -> Dict[str, Any]:
         """Queue and run sync for all configured pairs sequentially (never parallel)."""
         cfg = load_config()
         if not cfg.sync_pairs:

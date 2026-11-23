@@ -239,9 +239,33 @@ function confirmQueueAction() {
   closeQueueModal();
 
   if (target.isAll) {
-    executeSyncAll(target.dryRun, true);
+    fetch(`/api/sync/all/queue`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dry_run: target.dryRun, queue: true }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        showToast(data.message || "All pairs queued to run sequentially", "success");
+        fetchSyncStatus();
+      })
+      .catch(() => {
+        showToast("Error queueing sync jobs", "danger");
+      });
   } else {
-    executeSync(target.pairId, target.dryRun, true, target.pairName);
+    fetch(`/api/sync/${target.pairId}/queue`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dry_run: target.dryRun, queue: true }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        showToast(data.message || `Job for ${target.pairName || target.pairId} queued at position #${data.queue_position}`, "success");
+        fetchSyncStatus();
+      })
+      .catch(() => {
+        showToast("Error queueing sync job", "danger");
+      });
   }
 }
 
@@ -314,21 +338,11 @@ async function fetchSyncStatus() {
 }
 
 // API Triggers
-async function triggerSync(pairId, dryRun = false, queue = false, pairName = "") {
-  if (!queue && window.__isSyncRunning) {
-    openQueueModal({
-      pairId: pairId,
-      pairName: pairName || pairId,
-      dryRun: dryRun,
-      isAll: false,
-    });
-    return;
-  }
-
+async function triggerSync(pairId, dryRun = false, queue = true, pairName = "") {
   await executeSync(pairId, dryRun, queue, pairName);
 }
 
-async function executeSync(pairId, dryRun = false, queue = false, pairName = "") {
+async function executeSync(pairId, dryRun = false, queue = true, pairName = "") {
   try {
     const qParam = queue ? "?queue=true" : "";
     const res = await fetch(`/api/sync/${pairId}${qParam}`, {
@@ -338,12 +352,7 @@ async function executeSync(pairId, dryRun = false, queue = false, pairName = "")
     });
 
     if (res.status === 409) {
-      const err = await res.json().catch(() => ({}));
-      if (queue) {
-        showToast(err.detail || "Sync engine is busy. Could not queue job.", "warning");
-        return;
-      }
-      // Server returned conflict - open option to queue
+      // If server returned conflict (e.g. queue was explicitly false), open option to queue
       openQueueModal({
         pairId: pairId,
         pairName: pairName || pairId,
@@ -377,23 +386,15 @@ async function executeSync(pairId, dryRun = false, queue = false, pairName = "")
   }
 }
 
-async function triggerSyncAll(dryRun = false, queue = false) {
-  if (!queue && window.__isSyncRunning) {
-    openQueueModal({
-      isAll: true,
-      dryRun: dryRun,
-    });
-    return;
-  }
-
-  if (!queue && !confirm(`Are you sure you want to run ${dryRun ? "dry run for" : "sync on"} ALL pairs?`)) {
+async function triggerSyncAll(dryRun = false, queue = true) {
+  if (!confirm(`Are you sure you want to run ${dryRun ? "dry run for" : "sync on"} ALL pairs?`)) {
     return;
   }
 
   await executeSyncAll(dryRun, queue);
 }
 
-async function executeSyncAll(dryRun = false, queue = false) {
+async function executeSyncAll(dryRun = false, queue = true) {
   try {
     const qParam = queue ? "?queue=true" : "";
     const res = await fetch(`/api/sync/all${qParam}`, {
@@ -403,11 +404,6 @@ async function executeSyncAll(dryRun = false, queue = false) {
     });
 
     if (res.status === 409) {
-      const err = await res.json().catch(() => ({}));
-      if (queue) {
-        showToast(err.detail || "Sync engine is busy. Could not queue all pairs.", "warning");
-        return;
-      }
       openQueueModal({
         isAll: true,
         dryRun: dryRun,

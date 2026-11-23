@@ -4,14 +4,14 @@
 {% block header_title %}Configured Sync Pairs{% endblock %}
 
 {% block header_actions %}
-<button class="btn btn-secondary" onclick="triggerSyncAll(true)">
+<button class="btn btn-secondary" onclick="triggerSyncAll(true, true)">
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
     <circle cx="12" cy="12" r="3" />
   </svg>
   Dry Run All
 </button>
-<button class="btn btn-secondary" onclick="triggerSyncAll(false)">
+<button class="btn btn-secondary" onclick="triggerSyncAll(false, true)">
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
     <polygon points="5 3 19 12 5 21 5 3" />
   </svg>
@@ -229,7 +229,7 @@
           </td>
           <td style="text-align: right; white-space: nowrap;">
             <button class="btn btn-primary btn-sm"
-              onclick="triggerSync('{{ p.id }}', false, false, '{{ p.name | escape }}')"
+              onclick="triggerSync('{{ p.id }}', false, true, '{{ p.name | escape }}')"
               title="Start or Queue Live Sync">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polygon points="5 3 19 12 5 21 5 3" />
@@ -237,7 +237,7 @@
               Sync
             </button>
             <button class="btn btn-secondary btn-sm"
-              onclick="triggerSync('{{ p.id }}', true, false, '{{ p.name | escape }}')" title="Preview with Dry Run">
+              onclick="triggerSync('{{ p.id }}', true, true, '{{ p.name | escape }}')" title="Start or Queue Dry Run">
               Dry Run
             </button>
             <button class="btn btn-secondary btn-sm" onclick="testPairPaths('{{ p.id }}')"
