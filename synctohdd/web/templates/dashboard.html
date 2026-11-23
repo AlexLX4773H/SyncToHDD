@@ -224,7 +224,49 @@
           <th>Action</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="recent-runs-tbody">
+        {% if sync_status and sync_status.queue and sync_status.queue | length > 0 %}
+          {% for q_job in sync_status.queue %}
+          <tr class="queued-run-row" id="queued-run-row-{{ q_job.job_id }}">
+            <td>
+              <span class="badge badge-queued">
+                <span class="pulse-dot" style="width: 6px; height: 6px; background: #fbbf24; display: inline-block; border-radius: 50%;"></span>
+                Queued #{{ q_job.position }}
+              </span>
+            </td>
+            <td>
+              <strong style="color: #fff;">{{ q_job.pair_name }}</strong>
+              <div style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px;">
+                Waiting in queue (position #{{ q_job.position }})
+              </div>
+            </td>
+            <td style="color: var(--text-secondary); font-size: 0.85rem;">
+              {{ q_job.enqueued_at[0:10] + ' ' + q_job.enqueued_at[11:16] if q_job.enqueued_at and q_job.enqueued_at | length >= 16 else 'Waiting' }}
+            </td>
+            <td style="color: var(--text-muted); font-size: 0.85rem;">
+              Waiting
+            </td>
+            <td style="color: var(--text-muted);">
+              -
+            </td>
+            <td style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-muted);">
+              -
+            </td>
+            <td>
+              {% if q_job.dry_run %}
+                <span class="badge badge-mode">Dry Run</span>
+              {% else %}
+                <span style="color: var(--text-muted); font-size: 0.8rem;">Live</span>
+              {% endif %}
+            </td>
+            <td>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="removeQueuedJob('{{ q_job.job_id }}', '{{ q_job.pair_name | escape }}')" title="Remove this job from the queue">
+                Remove
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        {% endif %}
         {% if stats.recent_runs %}
           {% for run in stats.recent_runs %}
           <tr>
@@ -260,8 +302,8 @@
             </td>
           </tr>
           {% endfor %}
-        {% else %}
-          <tr>
+        {% elif not sync_status or not sync_status.queue %}
+          <tr id="no-runs-row">
             <td colspan="8" style="text-align: center; padding: 32px; color: var(--text-muted);">
               No sync runs recorded yet. Click "Sync" above to start your first backup!
             </td>

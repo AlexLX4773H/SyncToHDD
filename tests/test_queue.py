@@ -221,6 +221,18 @@ def test_queue_when_busy_and_endpoints():
                 res_all_q = client.post("/api/sync/all/queue", json={"dry_run": False})
                 assert res_all_q.status_code == 200
                 assert res_all_q.json()["status"] == "queued"
+
+                # 6. Verify Dashboard HTML renders queued job in Recent Sync Runs table
+                dash_html = client.get("/")
+                assert dash_html.status_code == 200
+                assert "Recent Sync Runs" in dash_html.text
+                assert "Queued #1" in dash_html.text
+                assert "Busy Test P1" in dash_html.text
+
+                # 7. Verify Runs History HTML renders queued job in table
+                runs_html = client.get("/runs")
+                assert runs_html.status_code == 200
+                assert "Queued #1" in runs_html.text
             finally:
                 sync_manager.cancel_current_sync(clear_queue=True)
                 sync_manager.is_batch_running = False

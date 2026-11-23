@@ -105,27 +105,26 @@
     {% if sync_status.queue and sync_status.queue | length > 0 %}
       {% for job in sync_status.queue %}
       <div class="queue-item" id="queue-item-{{ job.job_id }}">
-        <div class="queue-item-left">
+        <div class="queue-item-content">
           <span class="queue-pos-badge">#{{ job.position }}</span>
-          <div class="queue-item-info">
-            <div class="queue-item-name-row">
-              <strong class="queue-item-title">{{ job.pair_name }}</strong>
-              <span class="badge {{ 'badge-mode' if job.dry_run else 'badge-syncing' }}">
-                {{ 'Dry Run' if job.dry_run else 'Live Sync' }}
-              </span>
-            </div>
-            <div class="queue-item-paths">
-              <span>{{ job.source }} &rarr; {{ job.destination }}</span>
-            </div>
+          <strong class="queue-item-title">{{ job.pair_name }}</strong>
+          <span class="badge {{ 'badge-mode' if job.dry_run else 'badge-syncing' }}">
+            {{ 'Dry Run' if job.dry_run else 'Live Sync' }}
+          </span>
+          <span class="queue-item-sep">&bull;</span>
+          <div class="queue-item-paths" title="{{ job.source }} &rarr; {{ job.destination }}">
+            <span class="queue-path-text">{{ job.source }}</span>
+            <span class="queue-path-arrow">&rarr;</span>
+            <span class="queue-path-text">{{ job.destination }}</span>
           </div>
         </div>
         <div class="queue-item-actions">
-          <button class="btn btn-secondary btn-sm" onclick="removeQueuedJob('{{ job.job_id }}', '{{ job.pair_name | escape }}')" title="Remove this job from queue">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <button class="queue-remove-btn" onclick="removeQueuedJob('{{ job.job_id }}', '{{ job.pair_name | escape }}')" title="Remove this job from queue">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
-            Remove
+            <span>Remove</span>
           </button>
         </div>
       </div>

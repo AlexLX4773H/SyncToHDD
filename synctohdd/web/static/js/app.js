@@ -284,44 +284,114 @@ function updateQueueUI(queue) {
   }
 
   const container = document.getElementById("queue-items-container");
-  if (!container) return;
-
-  if (qList.length === 0) {
-    container.innerHTML = `
-      <div class="queue-empty-message">
-        No jobs currently waiting in the queue. Jobs queued while a sync is running will appear here.
-      </div>
-    `;
-    return;
-  }
-
-  container.innerHTML = qList.map((job) => `
-    <div class="queue-item" id="queue-item-${escapeHtml(job.job_id)}">
-      <div class="queue-item-left">
-        <span class="queue-pos-badge">#${job.position}</span>
-        <div class="queue-item-info">
-          <div class="queue-item-name-row">
+  if (container) {
+    if (qList.length === 0) {
+      container.innerHTML = `
+        <div class="queue-empty-message">
+          No jobs currently waiting in the queue. Jobs queued while a sync is running will appear here.
+        </div>
+      `;
+    } else {
+      container.innerHTML = qList.map((job) => `
+        <div class="queue-item" id="queue-item-${escapeHtml(job.job_id)}">
+          <div class="queue-item-content">
+            <span class="queue-pos-badge">#${job.position}</span>
             <strong class="queue-item-title">${escapeHtml(job.pair_name)}</strong>
             <span class="badge ${job.dry_run ? 'badge-mode' : 'badge-syncing'}">
               ${job.dry_run ? 'Dry Run' : 'Live Sync'}
             </span>
+            <span class="queue-item-sep">&bull;</span>
+            <div class="queue-item-paths" title="${escapeHtml(job.source)} &rarr; ${escapeHtml(job.destination)}">
+              <span class="queue-path-text">${escapeHtml(job.source)}</span>
+              <span class="queue-path-arrow">&rarr;</span>
+              <span class="queue-path-text">${escapeHtml(job.destination)}</span>
+            </div>
           </div>
-          <div class="queue-item-paths">
-            <span>${escapeHtml(job.source)} &rarr; ${escapeHtml(job.destination)}</span>
+          <div class="queue-item-actions">
+            <button class="queue-remove-btn" onclick="removeQueuedJob('${escapeHtml(job.job_id)}', '${escapeHtml(job.pair_name)}')" title="Remove this job from queue">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+              <span>Remove</span>
+            </button>
           </div>
         </div>
-      </div>
-      <div class="queue-item-actions">
-        <button class="btn btn-secondary btn-sm" onclick="removeQueuedJob('${escapeHtml(job.job_id)}', '${escapeHtml(job.pair_name)}')" title="Remove this job from the queue">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-          Remove
-        </button>
-      </div>
-    </div>
-  `).join("");
+      `).join("");
+    }
+  }
+
+  // Update Recent Sync Runs tables across views
+  updateRecentRunsQueueRows(qList);
+}
+
+function updateRecentRunsQueueRows(qList) {
+  const tbodies = [
+    document.getElementById("recent-runs-tbody"),
+    document.getElementById("runs-history-tbody")
+  ].filter(Boolean);
+
+  tbodies.forEach((tbody) => {
+    const existingQueued = tbody.querySelectorAll(".queued-run-row");
+    existingQueued.forEach(el => el.remove());
+
+    if (qList.length === 0) return;
+
+    const noRunsRow = tbody.querySelector("#no-runs-row");
+    if (noRunsRow) noRunsRow.style.display = "none";
+
+    const isRunsPage = tbody.id === "runs-history-tbody";
+
+    const rowsHtml = qList.map(job => {
+      let timeStr = "Waiting";
+      if (job.enqueued_at) {
+        try {
+          const d = new Date(job.enqueued_at);
+          timeStr = d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        } catch (e) {
+          timeStr = String(job.enqueued_at).substring(0, 16).replace("T", " ");
+        }
+      }
+      return `
+        <tr class="queued-run-row" id="queued-run-row-${escapeHtml(job.job_id)}">
+          <td>
+            <span class="badge badge-queued">
+              <span class="pulse-dot" style="width: 6px; height: 6px; background: #fbbf24; display: inline-block; border-radius: 50%;"></span>
+              Queued #${job.position}
+            </span>
+          </td>
+          <td>
+            <strong style="color: #fff; font-size: ${isRunsPage ? '0.92rem' : '0.95rem'};">${escapeHtml(job.pair_name)}</strong>
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px;">
+              Waiting in queue (position #${job.position})
+            </div>
+          </td>
+          <td style="color: var(--text-secondary); font-size: 0.85rem;">
+            ${escapeHtml(timeStr)}
+          </td>
+          <td style="color: var(--text-muted); font-size: 0.85rem;">
+            Waiting
+          </td>
+          <td style="color: var(--text-muted);">
+            -
+          </td>
+          <td style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-muted);">
+            -
+          </td>
+          <td>
+            ${job.dry_run ? '<span class="badge badge-mode">Dry Run</span>' : '<span style="color: var(--text-muted); font-size: 0.8rem;">Live</span>'}
+          </td>
+          <td style="${isRunsPage ? 'text-align: right; white-space: nowrap;' : ''}">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="removeQueuedJob('${escapeHtml(job.job_id)}', '${escapeHtml(job.pair_name)}')" title="Remove this job from the queue">
+              Remove
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    tbody.insertAdjacentHTML("afterbegin", rowsHtml);
+  });
 }
 
 async function fetchSyncStatus() {

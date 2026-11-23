@@ -293,14 +293,19 @@ async def runs_history_view(
 ):
     """Render paginated run history table with filters."""
     offset = (page - 1) * limit
-    runs, total = await crud.get_sync_runs(
-        session=db,
-        pair_id=pair if pair else None,
-        status=status if status else None,
-        limit=limit,
-        offset=offset,
-    )
-    total_pages = math.ceil(total / limit) if total > 0 else 1
+    if status == "queued":
+        runs = []
+        total = len(sync_manager.get_queue())
+        total_pages = 1
+    else:
+        runs, total = await crud.get_sync_runs(
+            session=db,
+            pair_id=pair if pair else None,
+            status=status if status else None,
+            limit=limit,
+            offset=offset,
+        )
+        total_pages = math.ceil(total / limit) if total > 0 else 1
     config = load_config()
 
     overall_total = total
